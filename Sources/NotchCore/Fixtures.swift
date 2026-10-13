@@ -19,8 +19,8 @@ public enum Fixtures {
             return [a(.claude, "opus", .high, "fix/upload-compress", .working),
                     a(.codex, "gpt-6.1-sol", .medium, "codex-job · schemas", .working, parent: "fx-1")]
         case "multi":
-            return [a(.claude, "opus", .high, "fix/upload-compress", .working, act: "Agent · найти роуты загрузки"),
-                    a(.claude, "haiku", .low, "Explore · роуты", .working, parent: "fx-1", act: "Grep · uploadRouter"),
+            return [a(.claude, "opus", .high, "fix/upload-compress", .working, act: "Agent · " + Loc.t("find upload routes", "найти роуты загрузки")),
+                    a(.claude, "haiku", .low, "Explore · " + Loc.t("routes", "роуты"), .working, parent: "fx-1", act: "Grep · uploadRouter"),
                     a(.codex, "gpt-6.1-sol", .medium, "codex-job · schemas", .working, parent: "fx-1",
                       act: "shell · pnpm --filter shared typecheck"),
                     a(.claude, "sonnet", .medium, "test-writer", .done, parent: "fx-1"),
@@ -37,8 +37,8 @@ public enum Fixtures {
         case "heavy":
             return [a(.claude, "opus", .high, "fix/upload-compress", .working),
                     a(.claude, "opus", .high, "code-reviewer", .error, parent: "fx-1"),
-                    a(.claude, "haiku", .low, "Explore · роуты", .working, parent: "fx-1"),
-                    a(.claude, "haiku", .low, "Explore · тесты", .done, parent: "fx-1"),
+                    a(.claude, "haiku", .low, "Explore · " + Loc.t("routes", "роуты"), .working, parent: "fx-1"),
+                    a(.claude, "haiku", .low, "Explore · " + Loc.t("tests", "тесты"), .done, parent: "fx-1"),
                     a(.claude, "sonnet", .medium, "test-writer", .working, parent: "fx-1"),
                     a(.codex, "gpt-6.1-sol", .medium, "codex-job · schemas", .working, parent: "fx-1"),
                     a(.codex, "gpt-6-luna", .low, "codex-job · fixtures", .done, parent: "fx-1"),
@@ -59,7 +59,7 @@ public enum Fixtures {
                     a(.codex, "gpt-6-astra", .high, "release-notes", .error, "hexhaven")]
         case "ask", "question", "plan":
             return [a(.claude, "opus", .high, "fix/upload-compress", .working),
-                    a(.claude, "haiku", .low, "Explore · роуты", .working, parent: "fx-1"),
+                    a(.claude, "haiku", .low, "Explore · " + Loc.t("routes", "роуты"), .working, parent: "fx-1"),
                     a(.codex, "gpt-6.1-sol", .high, "CONF-360", .working),
                     a(.claude, "sonnet", .medium, "docs/upload", .done)]
         default:
@@ -78,21 +78,36 @@ public enum Fixtures {
                 HookEvent(vendor: .codex, name: "PermissionRequest", sessionId: "fx-3", tool: "shell", detail: "rm -rf dist build")]
     }
 
-    /// A multi-select question and a single-choice one, as AskUserQuestion sends them.
-    static let question = HookEvent(
-        vendor: .claude, name: "PermissionRequest", sessionId: "fx-1", tool: "AskUserQuestion", detail: "Как сжимать видео?",
-        questions: [Question(question: "Как сжимать видео?", header: "Сжатие", options: [
-            QuestionOption(label: "На клиенте", description: "WebCodecs в браузере гостя, сервер не нагружается"),
-            QuestionOption(label: "На сервере", description: "ffmpeg в воркере, дольше, но предсказуемо")], multiSelect: false)],
-        toolInput: #"{"questions":[{"header":"Сжатие","multiSelect":false,"options":[{"description":"WebCodecs","label":"На клиенте"},{"description":"ffmpeg","label":"На сервере"}],"question":"Как сжимать видео?"}]}"#)
+    /// A single-choice question, as AskUserQuestion sends it.
+    static var question: HookEvent {
+        let q = Loc.t("How should video be compressed?", "Как сжимать видео?"), header = Loc.t("Compression", "Сжатие")
+        let client = Loc.t("On the client", "На клиенте"), server = Loc.t("On the server", "На сервере")
+        return HookEvent(
+            vendor: .claude, name: "PermissionRequest", sessionId: "fx-1", tool: "AskUserQuestion", detail: q,
+            questions: [Question(question: q, header: header, options: [
+                QuestionOption(label: client, description: Loc.t("WebCodecs in the guest's browser, no load on the server",
+                                                                "WebCodecs в браузере гостя, сервер не нагружается")),
+                QuestionOption(label: server, description: Loc.t("ffmpeg in a worker, slower but predictable",
+                                                                "ffmpeg в воркере, дольше, но предсказуемо"))], multiSelect: false)],
+            toolInput: #"{"questions":[{"header":"\#(header)","multiSelect":false,"options":[{"description":"WebCodecs","label":"\#(client)"},{"description":"ffmpeg","label":"\#(server)"}],"question":"\#(q)"}]}"#)
+    }
 
     /// A short plan, as ExitPlanMode sends it.
-    static let plan = HookEvent(
-        vendor: .claude, name: "PermissionRequest", sessionId: "fx-1", tool: "ExitPlanMode", detail: "план",
-        plan: """
+    static var plan: HookEvent {
+        let steps = Loc.isRussian ? """
         1. Прочитать загрузку в apps/app/features/upload
         2. Добавить сжатие через WebCodecs до 720p
         3. Покрыть тестами пограничные размеры
         4. Проверить на телефоне через agent-browser
-        """, toolInput: #"{"plan":"1. Прочитать загрузку"}"#)
+        """ : """
+        1. Read the upload code in apps/app/features/upload
+        2. Add WebCodecs compression down to 720p
+        3. Cover the edge sizes with tests
+        4. Check on a phone with agent-browser
+        """
+        let first = steps.split(separator: "\n").first.map(String.init) ?? ""
+        return HookEvent(vendor: .claude, name: "PermissionRequest", sessionId: "fx-1", tool: "ExitPlanMode",
+                         detail: Loc.t("plan", "план"), plan: steps,
+                         toolInput: #"{"plan":"\#(first)"}"#)
+    }
 }

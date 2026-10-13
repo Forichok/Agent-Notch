@@ -154,19 +154,22 @@ final class NotchController {
         settingsItem.target = SettingsWindow.shared
         settingsItem.keyEquivalentModifierMask = .command
         let inst = HookInstaller()
-        item(inst.isInstalled(.claude) ? "Хуки Claude Code установлены — удалить" : "Установить хуки Claude Code",
+        item(inst.isInstalled(.claude) ? Loc.t("Claude Code hooks installed — remove", "Хуки Claude Code установлены — удалить")
+             : Loc.t("Install Claude Code hooks", "Установить хуки Claude Code"),
              #selector(AppActions.toggleHooks(_:)), tag: 0)
-        item(inst.isInstalled(.codex) ? "Хуки Codex установлены — удалить" : "Установить хуки Codex",
+        item(inst.isInstalled(.codex) ? Loc.t("Codex hooks installed — remove", "Хуки Codex установлены — удалить")
+             : Loc.t("Install Codex hooks", "Установить хуки Codex"),
              #selector(AppActions.toggleHooks(_:)), tag: 1)
-        item("Решать запросы из чёлки", #selector(AppActions.toggleAnswer), on: AppSettings.shared.answerFromNotch)
-        item("Звук, когда агент ждёт", #selector(AppActions.toggleSounds), on: AppSettings.shared.sounds)
+        item(Loc.t("Answer requests from the notch", "Решать запросы из чёлки"), #selector(AppActions.toggleAnswer), on: AppSettings.shared.answerFromNotch)
+        item(Loc.t("Sound when an agent is waiting", "Звук, когда агент ждёт"), #selector(AppActions.toggleSounds), on: AppSettings.shared.sounds)
         item(ToastText.menu, #selector(AppActions.toggleFinishToast), on: AppSettings.shared.finishToast)
         menu.addItem(.separator())
-        item("Открывать при входе в систему", #selector(AppActions.toggleLogin), on: SMAppService.mainApp.status == .enabled)
-        item(AXIsProcessTrusted() ? "Сжатие по меню включено" : "Сжимать, когда меню доходит до чёлки…",
+        item(Loc.t("Open at login", "Открывать при входе в систему"), #selector(AppActions.toggleLogin), on: SMAppService.mainApp.status == .enabled)
+        item(AXIsProcessTrusted() ? Loc.t("Shrinking for menus is on", "Сжатие по меню включено")
+             : Loc.t("Shrink when the menu reaches the notch…", "Сжимать, когда меню доходит до чёлки…"),
              #selector(AppActions.askAccessibility), enabled: !AXIsProcessTrusted())
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Выйти", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: Loc.t("Quit", "Выйти"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         NSMenu.popUpContextMenu(menu, with: event, for: wingHost)
     }
 
@@ -213,10 +216,10 @@ final class AppActions: NSObject {
             } else {
                 try inst.placeHelper(from: Self.bundledHelper, app: Self.appExecutable)
                 try inst.install(vendor)
-                if vendor == .codex { Self.say("Хуки Codex записаны в ~/.codex/hooks.json", Self.codexTrustNote) }
+                if vendor == .codex { Self.say(Loc.t("Codex hooks written to ~/.codex/hooks.json", "Хуки Codex записаны в ~/.codex/hooks.json"), Self.codexTrustNote) }
             }
         } catch {
-            Self.say("Не получилось изменить хуки", error.localizedDescription)
+            Self.say(Loc.t("Could not change the hooks", "Не получилось изменить хуки"), error.localizedDescription)
         }
     }
 
@@ -228,11 +231,14 @@ final class AppActions: NSObject {
         do {
             if s.status == .enabled { try s.unregister() } else { try s.register() }
         } catch {
-            Self.say("Не получилось включить автозапуск", error.localizedDescription)
+            Self.say(Loc.t("Could not turn on open at login", "Не получилось включить автозапуск"), error.localizedDescription)
         }
     }
 
-    static let codexTrustNote = "Codex запускает новые хуки только после проверки. Откройте Codex, введите /hooks и отметьте хуки notch-hook как доверенные."
+    static var codexTrustNote: String {
+        Loc.t("Codex runs new hooks only after a review. Open Codex, type /hooks and mark the notch-hook hooks as trusted.",
+              "Codex запускает новые хуки только после проверки. Откройте Codex, введите /hooks и отметьте хуки notch-hook как доверенные.")
+    }
 
     /// The running app's own binary: the only process the helper will take a decision from.
     static var appExecutable: String { Bundle.main.executableURL?.resolvingSymlinksInPath().path ?? CommandLine.arguments[0] }

@@ -35,6 +35,8 @@ func run(_ name: String, _ body: () throws -> Void) {
     do { try body() } catch { report("threw \(error)", #fileID, #line) }
 }
 
+// Most checks assert the Russian copy; LanguageChecks switches to English for its own run.
+Loc.forced = .ru
 let l = LogTests(), t = TreeTests(), w = WingTests()
 run("scannerBothVendors") { try l.testScannerReadsBothVendorsIntoOneProject() }
 run("claudeProcessStatus") { try l.testClaudeProcessStatusWins() }
@@ -190,6 +192,9 @@ let sessionCost = SessionCostChecks()
 run("sessionCostClaude") { try sessionCost.claude() }
 run("sessionCostCodex") { try sessionCost.codex() }
 run("sessionCostFormat") { sessionCost.format() }
+let language = LanguageChecks()
+run("languageDetect") { language.detect() }
+run("languageEnglish") { language.english() }
 
 print(failures == 0 ? "OK \(ran) checks" : "\(failures) failure(s)")
 exit(failures == 0 ? 0 : 1)

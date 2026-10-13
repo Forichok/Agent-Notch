@@ -34,9 +34,9 @@ public struct ClaudeLive: Sendable, Equatable {
     /// "dialog open" → words for the list.
     var waitingText: String {
         switch waitingFor {
-        case nil, "dialog open": "подтверждение в окне Claude"
-        case "input needed": "нужен ответ"
-        case "sandbox request": "доступ из песочницы"
+        case nil, "dialog open": Loc.t("approval in the Claude window", "подтверждение в окне Claude")
+        case "input needed": Loc.t("needs an answer", "нужен ответ")
+        case "sandbox request": Loc.t("sandbox access", "доступ из песочницы")
         case let other?: other
         }
     }

@@ -2,22 +2,25 @@ import SwiftUI
 import NotchCore
 
 enum CardText {
-    static let open = "Открыть"
-    static let loading = "Читаем журнал…"
-    static let unavailable = "Журнал пока недоступен"
-    static let hidden = "Вкладки скрыты в настройках"
-    static let noDone = "Пока нет завершённых задач"
-    static let noRemaining = "Открытых задач нет"
-    static let noFiles = "Изменённых файлов пока нет"
-    static let noLog = "Команд и ошибок пока нет"
-    static let commands = "Последние команды"
-    static let message = "Последнее сообщение"
-    static let errors = "Ошибки и повторы"
-    static let test = "тест"
-    static func cost(_ amount: String) -> String { "цена сессии " + amount }
-    static let costHelp = "Примерная цена по публичным ценам моделей, это не счёт"
+    static var open: String { Loc.t("Open", "Открыть") }
+    static var loading: String { Loc.t("Reading the log…", "Читаем журнал…") }
+    static var unavailable: String { Loc.t("The log is not available yet", "Журнал пока недоступен") }
+    static var hidden: String { Loc.t("Tabs are hidden in settings", "Вкладки скрыты в настройках") }
+    static var noDone: String { Loc.t("No finished tasks yet", "Пока нет завершённых задач") }
+    static var noRemaining: String { Loc.t("No open tasks", "Открытых задач нет") }
+    static var noFiles: String { Loc.t("No changed files yet", "Изменённых файлов пока нет") }
+    static var noLog: String { Loc.t("No commands or errors yet", "Команд и ошибок пока нет") }
+    static var commands: String { Loc.t("Recent commands", "Последние команды") }
+    static var message: String { Loc.t("Last message", "Последнее сообщение") }
+    static var errors: String { Loc.t("Errors and repeats", "Ошибки и повторы") }
+    static var test: String { Loc.t("test", "тест") }
+    static func cost(_ amount: String) -> String { Loc.t("session cost ", "цена сессии ") + amount }
+    static var costHelp: String { Loc.t("Approximate cost at public model prices, not a bill", "Примерная цена по публичным ценам моделей, это не счёт") }
     static func tab(_ tab: CardTab) -> String {
-        switch tab { case .done: "Сделано"; case .remaining: "Осталось"; case .files: "Файлы"; case .log: "Лог" }
+        switch tab {
+        case .done: Loc.t("Done", "Сделано"); case .remaining: Loc.t("Remaining", "Осталось")
+        case .files: Loc.t("Files", "Файлы"); case .log: Loc.t("Log", "Лог")
+        }
     }
 }
 

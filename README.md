@@ -125,7 +125,7 @@ Yes. It watches the session logs, so it doesn't matter where the session runs.
 No. Without hooks you still see every agent and its state. Hooks are what let you answer from the notch.
 
 **What language is the interface in?**
-Russian for now; English is next on the list. The marks and colors need no translation.
+English by default, Russian when Russian is the first language in System Settings. To pick one by hand, start the app with `AGENT_NOTCH_LANG=en` or `AGENT_NOTCH_LANG=ru`.
 
 **Intel Macs?**
 Not yet. Releases are built for Apple Silicon only.

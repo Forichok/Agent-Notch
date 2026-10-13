@@ -3,7 +3,7 @@ import Foundation
 /// Claude Code: ~/.claude/projects/<encoded-cwd>/<session>.jsonl, subagents in <session>/subagents/agent-<id>.jsonl.
 enum ClaudeLine {
     /// Tools that stop and wait for the human by design.
-    static let asking = ["AskUserQuestion": "вопрос", "ExitPlanMode": "согласовать план"]
+    static var asking: [String: String] { ["AskUserQuestion": Loc.t("question", "вопрос"), "ExitPlanMode": Loc.t("approve plan", "согласовать план")] }
 
     static func apply(_ r: Rec, to s: inout SessionLog, isSubagent: Bool) {
         if r["isSidechain"] as? Bool == true && !isSubagent { return }
@@ -115,7 +115,7 @@ enum CodexLine {
         s.touch(at)
         if approvals.contains(t) {
             let cmd = (p["command"] as? [String])?.last ?? p["command"] as? String
-            s.ask = cmd.flatMap { LogText.clip($0, 60) } ?? "подтверждение"
+            s.ask = cmd.flatMap { LogText.clip($0, 60) } ?? Loc.t("approval", "подтверждение")
             return
         }
         s.ask = nil

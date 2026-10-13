@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- English interface. It is the default; Russian stays when Russian is the system's first language. `AGENT_NOTCH_LANG=en|ru` overrides it.
+- README and promo screenshots are now in English.
+
 ## [0.1.0] - 2026-10-13
 
 First public release.

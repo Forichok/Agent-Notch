@@ -114,7 +114,7 @@ enum Snapshot {
         var body: some View {
             VStack(alignment: .trailing, spacing: 6) {
                 HStack(spacing: 0) {
-                    Text("  Finder  Файл  Правка  Вид").font(.system(size: 13)).foregroundStyle(.white)
+                    Text(Loc.t("  Finder  File  Edit  View", "  Finder  Файл  Правка  Вид")).font(.system(size: 13)).foregroundStyle(.white)
                     Spacer(minLength: 20)
                     WingView(layout: store.layout)
                         .frame(height: 32)

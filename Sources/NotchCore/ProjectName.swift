@@ -8,7 +8,7 @@ public final class ProjectNames: @unchecked Sendable {
     public init() {}
 
     public func name(for cwd: String?) -> String {
-        guard let cwd, !cwd.isEmpty else { return "без проекта" }
+        guard let cwd, !cwd.isEmpty else { return Loc.t("no project", "без проекта") }
         if let hit = cache[cwd] { return hit }
         let name = resolve(cwd)
         cache[cwd] = name

@@ -3,16 +3,16 @@ import NotchCore
 
 /// All user-facing text of the answer rows, in one place.
 private enum AnswerText {
-    static let answer = "Ответить"
-    static let own = "Свой ответ…"
-    static let ownHint = "Ваш ответ"
-    static let inAgent = "В окне агента"
-    static let accept = "Принять"
-    static let comment = "Вернуть с комментарием…"
-    static let commentHint = "Что поправить в плане"
-    static let send = "Вернуть"
-    static let plan = "План"
-    static let always = "Всегда"
+    static var answer: String { Loc.t("Answer", "Ответить") }
+    static var own: String { Loc.t("Your own answer…", "Свой ответ…") }
+    static var ownHint: String { Loc.t("Your answer", "Ваш ответ") }
+    static var inAgent: String { Loc.t("In the agent window", "В окне агента") }
+    static var accept: String { Loc.t("Approve", "Принять") }
+    static var comment: String { Loc.t("Send back with a comment…", "Вернуть с комментарием…") }
+    static var commentHint: String { Loc.t("What to change in the plan", "Что поправить в плане") }
+    static var send: String { Loc.t("Send back", "Вернуть") }
+    static var plan: String { Loc.t("Plan", "План") }
+    static var always: String { Loc.t("Always", "Всегда") }
 }
 
 /// A question of the agent with its options as buttons. One single-choice question answers on the click;

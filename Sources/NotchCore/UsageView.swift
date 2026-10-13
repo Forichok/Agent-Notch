@@ -27,7 +27,7 @@ public enum UsageView {
 }
 
 public enum UsageViewText {
-    public static let stale = "нет свежих данных"
+    public static var stale: String { Loc.t("no fresh data", "нет свежих данных") }
     public static func vendor(_ vendor: Vendor) -> String { vendor == .claude ? "Claude" : "Codex" }
     public static func percent(_ value: Double) -> String {
         value.isFinite ? String(format: "%.0f%%", value) : "—"
@@ -39,21 +39,23 @@ public enum UsageViewText {
         let window = usage.windowTokens
         let size = window >= 1_000_000 && window % 1_000_000 == 0 ? "\(window / 1_000_000)M" :
             window >= 1000 && window % 1000 == 0 ? "\(window / 1000)K" : "\(window)"
-        return "контекст \(percent(usage.percent)) из \(size)"
+        return Loc.t("context \(percent(usage.percent)) of \(size)", "контекст \(percent(usage.percent)) из \(size)")
     }
     public static func reset(_ date: Date?, now: Date) -> String {
-        guard let date else { return "время сброса неизвестно" }
+        let unknown = Loc.t("reset time unknown", "время сброса неизвестно")
+        guard let date else { return unknown }
         let seconds = date.timeIntervalSince(now)
-        guard seconds.isFinite else { return "время сброса неизвестно" }
-        if seconds <= 0 { return "сброс сейчас" }
+        guard seconds.isFinite else { return unknown }
+        if seconds <= 0 { return Loc.t("resets now", "сброс сейчас") }
+        let d = Loc.t("d", "д"), h = Loc.t("h", "ч"), mins = Loc.t("min", "мин")
         let minutes = ceil(seconds / 60)
         let duration: String
-        if minutes >= 1440 { duration = String(format: "%.0f д", floor(minutes / 1440)) }
+        if minutes >= 1440 { duration = String(format: "%.0f ", floor(minutes / 1440)) + d }
         else if minutes >= 60 {
             let hours = floor(minutes / 60), remainder = minutes.truncatingRemainder(dividingBy: 60)
-            duration = String(format: "%.0f ч", hours) + (remainder > 0 ? String(format: " %.0f мин", remainder) : "")
-        } else { duration = String(format: "%.0f мин", minutes) }
-        return "сброс через \(duration)"
+            duration = String(format: "%.0f ", hours) + h + (remainder > 0 ? String(format: " %.0f ", remainder) + mins : "")
+        } else { duration = String(format: "%.0f ", minutes) + mins }
+        return Loc.t("resets in ", "сброс через ") + duration
     }
     public static func window(_ window: LimitWindow, now: Date) -> String {
         "\(window.label): \(percent(window.usedPercent)) · \(reset(window.resetsAt, now: now))"

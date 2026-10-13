@@ -2,10 +2,10 @@ import SwiftUI
 import NotchCore
 
 private enum UsageInlineText {
-    static let spend = "Расход сегодня · условная цена"
-    static let partial = "Ещё читаем журналы"
-    static let empty = "Расходов пока нет"
-    static let unknown = "цена неизвестна"
+    static var spend: String { Loc.t("Spend today · estimated price", "Расход сегодня · условная цена") }
+    static var partial: String { Loc.t("Still reading logs", "Ещё читаем журналы") }
+    static var empty: String { Loc.t("No spend yet", "Расходов пока нет") }
+    static var unknown: String { Loc.t("price unknown", "цена неизвестна") }
     static func amount(_ usd: Double?) -> String {
         usd.map { String(format: "$%.2f", $0) } ?? unknown
     }

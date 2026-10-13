@@ -4,7 +4,7 @@ import NotchCore
 private enum RowPartsText {
     static func branch(_ value: String) -> String { "⎇ " + value }
     static func worktree(_ value: String) -> String { "⌂ " + value }
-    static let cost = "Примерная цена сессии по публичным ценам моделей, это не счёт"
+    static var cost: String { Loc.t("Approximate session cost at public model prices, not a bill", "Примерная цена сессии по публичным ценам моделей, это не счёт") }
 }
 
 /// Metadata wraps in saved order; the activity gets its own line at its chosen position.

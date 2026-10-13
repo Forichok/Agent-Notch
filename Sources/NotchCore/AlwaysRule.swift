@@ -62,7 +62,7 @@ public enum AlwaysRule {
     }
 
     private enum Text {
-        static func label(_ scope: String, _ project: String) -> String { "Всегда `\(scope)` в \(project)" }
+        static func label(_ scope: String, _ project: String) -> String { Loc.t("Always `\(scope)` in \(project)", "Всегда `\(scope)` в \(project)") }
     }
 }
 

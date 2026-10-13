@@ -87,9 +87,9 @@ public enum LimitsReader {
 enum LimitLabels {
     static func label(_ minutes: Int) -> String {
         switch minutes {
-        case 300: return "5 ч"
-        case 10080: return "неделя"
-        default: return minutes % 60 == 0 ? "\(minutes / 60) ч" : "\(minutes) мин"
+        case 300: return Loc.t("5 h", "5 ч")
+        case 10080: return Loc.t("week", "неделя")
+        default: return minutes % 60 == 0 ? "\(minutes / 60) " + Loc.t("h", "ч") : "\(minutes) " + Loc.t("min", "мин")
         }
     }
 }

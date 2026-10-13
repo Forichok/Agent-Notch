@@ -28,7 +28,7 @@ public struct HookState: Sendable, Equatable {
             return []
         }
         if e.isPromptShown {
-            shown[e.agentKey] = Shown(text: LogText.clip(e.message, 60) ?? "подтверждение", at: now)
+            shown[e.agentKey] = Shown(text: LogText.clip(e.message, 60) ?? Loc.t("approval", "подтверждение"), at: now)
             return []
         }
         shown[e.agentKey] = nil
@@ -63,7 +63,7 @@ public struct HookState: Sendable, Equatable {
         for p in pending where !known.contains(p.event.agentKey) {
             let e = p.event
             known.insert(e.agentKey)
-            out.append(Agent(id: e.agentKey, vendor: e.vendor, title: "новая сессия", state: .waiting,
+            out.append(Agent(id: e.agentKey, vendor: e.vendor, title: Loc.t("new session", "новая сессия"), state: .waiting,
                              project: project(e.cwd), parentId: e.agentId == nil ? nil : e.sessionId,
                              ask: e.askLine, startedAt: p.at, cwd: e.cwd, chatId: e.sessionId))
         }

@@ -3,12 +3,12 @@ import NotchCore
 
 private enum UsageSnapshotText {
     static let project = "Agents Notch"
-    static let otherProject = "Другой проект"
-    static let analyse = "Разобрать проект"
-    static let build = "Проверить сборку"
-    static let review = "Проверить изменения"
-    static let shortWindow = "5 ч"
-    static let week = "неделя"
+    static var otherProject: String { Loc.t("Another project", "Другой проект") }
+    static var analyse: String { Loc.t("Explore the project", "Разобрать проект") }
+    static var build: String { Loc.t("Check the build", "Проверить сборку") }
+    static var review: String { Loc.t("Review the changes", "Проверить изменения") }
+    static var shortWindow: String { Loc.t("5 h", "5 ч") }
+    static var week: String { Loc.t("week", "неделя") }
 }
 
 /// Deterministic usage data lets the lead inspect all thresholds without reading personal logs.

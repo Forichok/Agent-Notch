@@ -4,8 +4,8 @@ import NotchCore
 
 /// Words of the finish toast.
 enum ToastText {
-    static let menu = "Тост, когда агент закончил"
-    static let open = "Подробнее"
+    static var menu: String { Loc.t("Toast when an agent finishes", "Тост, когда агент закончил") }
+    static var open: String { Loc.t("Details", "Подробнее") }
 }
 
 extension AppActions {

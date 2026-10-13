@@ -42,9 +42,9 @@ public struct HookEvent: Sendable, Equatable {
 
     /// What the agent waits for, in the list row.
     public var askLine: String {
-        if isQuestion { return "вопрос: \(LogText.clip(questions[0].question, 60) ?? "")" }
-        if isPlan { return "принять план" }
-        return "разрешить: \(summary)"
+        if isQuestion { return Loc.t("question: ", "вопрос: ") + (LogText.clip(questions[0].question, 60) ?? "") }
+        if isPlan { return Loc.t("approve plan", "принять план") }
+        return Loc.t("allow: ", "разрешить: ") + summary
     }
 
     public init(vendor: Vendor, name: String, sessionId: String, agentId: String? = nil, cwd: String? = nil,
@@ -72,7 +72,7 @@ public struct HookEvent: Sendable, Equatable {
 
     /// "Bash · pnpm test", "Edit · src/app.ts".
     public var summary: String {
-        ToolText.join(tool.map(ToolText.name) ?? "действие", detail)
+        ToolText.join(tool.map(ToolText.name) ?? Loc.t("action", "действие"), detail)
     }
 
     /// Commands that are hard to undo. Checked on the whole command, not the shown line.
@@ -116,7 +116,8 @@ public enum HookReply {
         let inner: String
         switch decision {
         case .allow, .allowAlways: inner = #"{"behavior":"allow"}"#
-        case .deny: inner = #"{"behavior":"deny","message":"Отклонено в Agents Notch"}"#
+        case .deny: inner = Loc.isRussian ? #"{"behavior":"deny","message":"Отклонено в Agents Notch"}"#
+            : #"{"behavior":"deny","message":"Denied in Agents Notch"}"#
         case .pass: return nil
         case .allowWith(let input):
             guard let obj = HookDecision.object(input),

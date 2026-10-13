@@ -27,7 +27,7 @@ extension HookReply {
             out["updatedInput"] = obj
         case .deny:
             out["permissionDecision"] = "deny"
-            out["permissionDecisionReason"] = "Отклонено в Agents Notch"
+            out["permissionDecisionReason"] = Loc.t("Denied in Agents Notch", "Отклонено в Agents Notch")
         case .denyWith(let message):
             out["permissionDecision"] = "deny"
             out["permissionDecisionReason"] = message

@@ -47,7 +47,7 @@ public extension HookDecision {
 
     /// The plan sent back: Claude gets the comment as the reason and revises.
     static func returnPlan(feedback: String) -> HookDecision {
-        .denyWith(message: "План возвращён в Agents Notch с комментарием: \(feedback)")
+        .denyWith(message: Loc.t("Plan sent back from Agents Notch with a comment: \(feedback)", "План возвращён в Agents Notch с комментарием: \(feedback)"))
     }
 
     /// Short name for the audit log.

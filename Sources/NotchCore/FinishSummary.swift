@@ -2,11 +2,12 @@ import Foundation
 
 /// Words of the finish toast, in one place.
 private enum FinishText {
-    static let done = "готово"
-    static let testsOk = "тесты ✓"
-    static let testsFailed = "тесты ✗"
-    static let commit = "коммит"
+    static var done: String { Loc.t("done", "готово") }
+    static var testsOk: String { Loc.t("tests ✓", "тесты ✓") }
+    static var testsFailed: String { Loc.t("tests ✗", "тесты ✗") }
+    static var commit: String { Loc.t("commit", "коммит") }
     static func files(_ n: Int) -> String {
+        if !Loc.isRussian { return n == 1 ? "1 file" : "\(n) files" }
         let last = n % 10, tens = n % 100
         let word = tens >= 11 && tens <= 14 ? "файлов" : last == 1 ? "файл" : (2...4).contains(last) ? "файла" : "файлов"
         return "\(n) \(word)"
@@ -35,7 +36,7 @@ public enum FinishSummary {
         recent(detail, since: since).contains { isCommit($0) && $0.ok != false }
     }
 
-    /// "готово · 3 файла · тесты ✓ · коммит abc123". Parts with nothing to say are left out.
+    /// "done · 3 files · tests ✓ · commit abc123". Parts with nothing to say are left out.
     public static func line(_ detail: AgentDetail, since: Double? = nil, commit: String? = nil) -> String {
         let commands = recent(detail, since: since)
         var parts = [FinishText.done]

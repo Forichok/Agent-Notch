@@ -34,9 +34,9 @@ public enum CardFormat {
 }
 
 private enum CardFormatText {
-    static let seconds = "с"
-    static let minutes = "мин"
-    static let hours = "ч"
+    static var seconds: String { Loc.t("s", "с") }
+    static var minutes: String { Loc.t("min", "мин") }
+    static var hours: String { Loc.t("h", "ч") }
 }
 
 extension CardFormat {

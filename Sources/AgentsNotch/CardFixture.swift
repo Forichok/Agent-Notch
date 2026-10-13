@@ -21,10 +21,10 @@ enum CardFixture {
 }
 
 private enum CardFixtureText {
-    static let title = "Карточка агента"
-    static let completed = "Подключить чтение журнала"
-    static let active = "Проверить вкладки карточки"
-    static let todo = "Проверить переход в окно агента"
-    static let message = "Карточка читает журнал в фоне. Осталось проверить переход между окнами."
-    static let error = "Не найден файл проверки"
+    static var title: String { Loc.t("Agent card", "Карточка агента") }
+    static var completed: String { Loc.t("Hook up log reading", "Подключить чтение журнала") }
+    static var active: String { Loc.t("Check the card tabs", "Проверить вкладки карточки") }
+    static var todo: String { Loc.t("Check jumping to the agent window", "Проверить переход в окно агента") }
+    static var message: String { Loc.t("The card reads the log in the background. Jumping between windows is left to check.", "Карточка читает журнал в фоне. Осталось проверить переход между окнами.") }
+    static var error: String { Loc.t("Check file not found", "Не найден файл проверки") }
 }

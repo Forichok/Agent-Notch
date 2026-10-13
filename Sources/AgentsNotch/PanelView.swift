@@ -82,7 +82,7 @@ struct PanelView: View {
                             Button { RowClick.isDouble ? store.open(k) : store.select(k) } label: { AgentStatusMark(agent: k, small: true).padding(3) }.buttonStyle(.plain)
                         }
                     }
-                    Text(done.count == 1 ? "\(done[0].title) — готово" : "ещё \(done.count) готово")
+                    Text(done.count == 1 ? "\(done[0].title) — " + Loc.t("done", "готово") : Loc.t("\(done.count) more done", "ещё \(done.count) готово"))
                         .foregroundStyle(dim).lineLimit(1)
                     Spacer()
                 }
@@ -141,14 +141,14 @@ private struct AttentionRow: View {
                     Request(event: ask.event)
                     Choices(ask: ask, store: store, hint: first)
                 } else {
-                    Text(waiting ? "просит: \(a.ask ?? "подтверждение")" : "повторяет одну и ту же ошибку")
+                    Text(waiting ? Loc.t("asks: ", "просит: ") + (a.ask ?? Loc.t("approval", "подтверждение")) : Loc.t("repeats the same error", "повторяет одну и ту же ошибку"))
                         .foregroundStyle(waiting ? Color(white: 0.85) : dim).lineLimit(1).truncationMode(.middle)
                         .font(.system(size: 11))
                 }
             }
             Spacer(minLength: 6)
             if ask == nil {
-                Button(waiting ? "Ответить" : "Чат") { store.open(a) }
+                Button(waiting ? Loc.t("Answer", "Ответить") : Loc.t("Chat", "Чат")) { store.open(a) }
                     .buttonStyle(Pill(primary: waiting))
             }
         }
@@ -162,9 +162,9 @@ private struct Request: View {
     let event: HookEvent
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
-            Text(event.tool.map { $0.hasPrefix("mcp__") ? "MCP" : $0 } ?? "действие").foregroundStyle(dim)
+            Text(event.tool.map { $0.hasPrefix("mcp__") ? "MCP" : $0 } ?? Loc.t("action", "действие")).foregroundStyle(dim)
             // The approval row shows exactly what gets approved, whole (up to 12 lines), never the shortened activity line.
-            Text(event.full ?? "без подробностей")
+            Text(event.full ?? Loc.t("no details", "без подробностей"))
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(event.isRisky ? AgentState.error.color : Color(white: 0.92))
                 .lineLimit(event.isLong ? 12 : 1).truncationMode(.middle)
@@ -187,9 +187,9 @@ private struct Choices: View {
             AlwaysButton(ask: ask, store: store)
             Button(SettingsListText.deny(hint: hint, shortcut: settings.shortcuts.deny)) { store.decide(ask, .deny) }
                 .buttonStyle(Pill(primary: false))
-            Button("В окне агента") { store.decide(ask, .pass) }
+            Button(Loc.t("In the agent window", "В окне агента")) { store.decide(ask, .pass) }
                 .buttonStyle(.plain).foregroundStyle(dim).font(.system(size: 11)).lineLimit(1)
-            if ask.event.isRisky { Text("опасно").foregroundStyle(AgentState.error.color).font(.system(size: 10.5, weight: .medium)) }
+            if ask.event.isRisky { Text(Loc.t("dangerous", "опасно")).foregroundStyle(AgentState.error.color).font(.system(size: 10.5, weight: .medium)) }
         }
         .padding(.top, 2)
     }
@@ -207,10 +207,10 @@ private struct Summary: View {
         HStack(spacing: 10) {
             VendorCount(vendor: .claude, n: live.filter { $0.vendor == .claude }.count, label: "Claude")
             VendorCount(vendor: .codex, n: live.filter { $0.vendor == .codex }.count, label: "Codex")
-            if waiting > 0 { Text("\(waiting) ждёт").foregroundStyle(AgentState.waiting.color) }
-            if errors > 0 { Text("\(errors) с ошибкой").foregroundStyle(AgentState.error.color) }
+            if waiting > 0 { Text(Loc.t("\(waiting) waiting", "\(waiting) ждёт")).foregroundStyle(AgentState.waiting.color) }
+            if errors > 0 { Text(Loc.t("\(errors) with errors", "\(errors) с ошибкой")).foregroundStyle(AgentState.error.color) }
             Spacer()
-            Text(projects.count > 1 ? "проектов: \(projects.count)" : projects[0].name).foregroundStyle(dim)
+            Text(projects.count > 1 ? Loc.t("projects: \(projects.count)", "проектов: \(projects.count)") : projects[0].name).foregroundStyle(dim)
         }
         }
         .font(.system(size: 11))

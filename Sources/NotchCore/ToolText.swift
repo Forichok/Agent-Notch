@@ -52,7 +52,7 @@ enum ToolText {
     static func detail(_ tool: String, _ input: Any?) -> String? {
         let i = input as? Rec ?? [:]
         if tool == "AskUserQuestion", let q = Question.parse(input).first { return LogText.clip(q.question, 80) }
-        if tool == "ExitPlanMode" { return "план" }
+        if tool == "ExitPlanMode" { return Loc.t("plan", "план") }
         if let cmd = i["command"] as? String ?? (i["command"] as? [String])?.last { return command(cmd) }
         if let path = i["file_path"] as? String ?? i["notebook_path"] as? String ?? i["path"] as? String {
             return URL(fileURLWithPath: path).pathComponents.suffix(2).joined(separator: "/")
