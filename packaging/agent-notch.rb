@@ -27,10 +27,16 @@ cask "agent-notch" do
 
   uninstall quit: "com.forichok.agents-notch"
 
-  zap trash: "~/Library/Preferences/com.forichok.agents-notch.plist"
-
-  caveats <<~EOS
-    If you installed the hooks, remove them before uninstalling:
-      "#{appdir}/Agent Notch.app/Contents/MacOS/AgentsNotch" --uninstall-hooks
-  EOS
+  # zap runs after the app is removed: the hooks come out through the helper copy, before it is trashed.
+  zap script: {
+        executable: "/bin/sh",
+        args:       [
+          "-c",
+          'h="$HOME/Library/Application Support/AgentsNotch/notch-hook"; [ -x "$h" ] && "$h" --uninstall-hooks; true',
+        ],
+      },
+      trash:  [
+        "~/Library/Application Support/AgentsNotch",
+        "~/Library/Preferences/com.forichok.agents-notch.plist",
+      ]
 end
