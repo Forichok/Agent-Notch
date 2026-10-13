@@ -39,4 +39,9 @@ cask "agent-notch" do
         "~/Library/Application Support/AgentsNotch",
         "~/Library/Preferences/com.forichok.agents-notch.plist",
       ]
+
+  caveats <<~EOS
+    A plain uninstall keeps the Claude Code and Codex hooks. To remove them too:
+      brew uninstall --zap agent-notch
+  EOS
 end

@@ -9,19 +9,26 @@ import NotchCore
 // `brew uninstall --zap` runs it from this copy, because by then the app bundle is already gone.
 
 let args = CommandLine.arguments
-if args.contains("--uninstall-hooks") {
-    // $HOME first: the zap script finds this helper through it, and a test can point it at a scratch home.
-    let inst = ProcessInfo.processInfo.environment["HOME"].map { HookInstaller(home: URL(fileURLWithPath: $0)) } ?? HookInstaller()
-    do {
-        for v in [Vendor.claude, .codex] {
+if args.count == 2 && args[1] == "--uninstall-hooks" {
+    // The home is where this copy lives, so the paths match the installed commands exactly; $HOME is the fallback.
+    let suffix = "/Library/Application Support/AgentsNotch/notch-hook"
+    // realpath, not URL.resolvingSymlinksInPath: that one drops /private and the paths stop matching.
+    let me = Bundle.main.executablePath.flatMap { realpath($0, nil) }.map { p in defer { free(p) }; return String(cString: p) } ?? ""
+    let home = me.hasSuffix(suffix) ? String(me.dropLast(suffix.count))
+        : ProcessInfo.processInfo.environment["HOME"].flatMap { $0.isEmpty ? nil : $0 }
+    let inst = home.map { HookInstaller(home: URL(fileURLWithPath: $0)) } ?? HookInstaller()
+    // One vendor failing must not leave the other's hooks behind: zap trashes this helper right after.
+    var failed = false
+    for v in [Vendor.claude, .codex] {
+        do {
             try inst.uninstall(v)
             print("\(v.rawValue): \(inst.isInstalled(v) ? "installed" : "removed") in \(inst.file(v).path)")
+        } catch {
+            print("\(v.rawValue): \(error.localizedDescription)")
+            failed = true
         }
-        exit(0)
-    } catch {
-        print("hooks: \(error.localizedDescription)")
-        exit(1)
     }
+    exit(failed ? 1 : 0)
 }
 guard args.count > 1, let vendor = Vendor(rawValue: args[1]) else { exit(0) }
 let input = FileHandle.standardInput.readDataToEndOfFile()
