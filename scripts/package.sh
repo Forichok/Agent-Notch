@@ -12,7 +12,8 @@ rm -rf dist && mkdir -p dist/stage
 APP="dist/stage/Agent Notch.app"
 cp -R build/AgentsNotch.app "$APP"
 codesign --force --sign - "$APP/Contents/Helpers/notch-hook"
-codesign --force --sign - "$APP"
+# Same requirement as build.sh, so Accessibility survives updates.
+codesign --force --sign - -r='designated => identifier "com.forichok.agents-notch"' "$APP"
 
 ditto -c -k --sequesterRsrc --keepParent "$APP" "dist/AgentNotch-$VERSION.zip"
 

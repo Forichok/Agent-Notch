@@ -51,6 +51,8 @@ PLIST
 [ -f assets/AppIcon.icns ] && cp assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --sign - "$APP/Contents/Helpers/notch-hook"
-codesign --force --sign - "$APP"
+# An ad-hoc signature is pinned by its hash, and macOS ties Accessibility to that hash: every new build would
+# lose the permission while System Settings keeps showing it on. Requiring only the bundle id keeps it.
+codesign --force --sign - -r='designated => identifier "com.forichok.agents-notch"' "$APP"
 sh scripts/test-app-features.sh
 echo "built $APP"
