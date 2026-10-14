@@ -2,13 +2,11 @@
 
 [English](README.md)
 
-<a href="https://github.com/user-attachments/assets/e0233797-1f4f-46ff-a82c-b08d428b05c9"><img src="assets/promo.gif" width="820" alt="Кадры из ролика: ноутбук на столе со списком агентов у «чёлки», крышка открывается на рассвете, тема перекрашивает комнату"></a>
+<a href="https://github.com/user-attachments/assets/e0233797-1f4f-46ff-a82c-b08d428b05c9"><img src="assets/promo.webp" width="820" alt="Кадры из ролика: ноутбук на столе со списком агентов у «чёлки», крышка открывается на рассвете, тема перекрашивает комнату"></a>
 
 [Смотреть ролик (72 с)](https://github.com/user-attachments/assets/e0233797-1f4f-46ff-a82c-b08d428b05c9)
 
 Крыло слева от «чёлки» MacBook. Показывает, какие агенты Claude Code и Codex работают на этом Mac, в каких проектах и кто кого запустил. Данные берутся только из локальных журналов сессий: `~/.claude/projects/**` и `~/.codex/sessions/**`. Приложение их читает и ничего никуда не отправляет.
-
-https://github.com/user-attachments/assets/e0233797-1f4f-46ff-a82c-b08d428b05c9
 
 ## Установка
 
