@@ -2,7 +2,7 @@ import AppKit
 import NotchCore
 
 /// Flags: `--fixture <scene>` shows a made-up scene instead of the real logs, `--cramped` forces the one-summary wing,
-/// `--snapshot-card <png> [--card-tab prompts] [--card-log <jsonl>]` draws the agent card on one tab, from a real log if given, `--open-list` opens the list on start, `--snapshot <dir>` writes PNGs of every scene and quits,
+/// `--snapshot-card <png> [--card-tab prompts] [--card-log <jsonl>]` draws the agent card on one tab, from a real log if given, `--open-list` opens the list on start, `--open-prompts` the prompt picker, `--snapshot <dir>` writes PNGs of every scene and quits,
 /// `--install-hooks` / `--uninstall-hooks` edit the Claude Code and Codex hook files and quit.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var notch: NotchController?
     var watcher: MenuWatcher?
     var keys: HotKeys?
+    var picker: PromptPicker?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let args = CommandLine.arguments
@@ -26,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let i = args.firstIndex(of: "--snapshot-settings"), i + 1 < args.count {
             exit(Snapshot.runSettings(to: args[i + 1]) ? 0 : 1)
+        }
+        if let i = args.firstIndex(of: "--snapshot-prompts"), i + 1 < args.count {
+            exit(Snapshot.runPrompts(to: args[i + 1]) ? 0 : 1)
         }
         if let i = args.firstIndex(of: "--snapshot-marks"), i + 1 < args.count {
             exit(Snapshot.runMarks(to: args[i + 1]) ? 0 : 1)
@@ -61,10 +65,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self, !self.store.hooks.pending.isEmpty, !self.store.decideByHotkey(d) else { return }
             notch?.showList()
         }
-        keys = HotKeys(allow: { answer(.allow) }, deny: { answer(.deny) }, list: { [weak notch] in notch?.toggleList() })
+        SkillStore.shared.projects = { [store] in store.agents.compactMap(\.cwd) }
+        let picker = PromptPicker()
+        self.picker = picker
+        notch.onPrompts = { [weak picker] in picker?.show() }
+        keys = HotKeys(allow: { answer(.allow) }, deny: { answer(.deny) }, list: { [weak notch] in notch?.toggleList() },
+                       vault: { [weak picker] in picker?.toggle() })
         watcher = MenuWatcher(store: store) { [weak notch] in notch?.fullWingLeft }
         if args.contains("--open-list") { notch.showList() }
+        if args.contains("--open-prompts") { picker.show() }
     }
+
+    func applicationWillTerminate(_ notification: Notification) { PromptStore.shared.flush() }
 
     private static func editHooks(install: Bool) -> Int32 {
         let inst = HookInstaller()

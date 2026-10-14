@@ -78,6 +78,7 @@ public struct KeyboardShortcut: Codable, Equatable, Sendable {
     public static let allow = Self(keyCode: 16, modifiers: [.control, .option])
     public static let deny = Self(keyCode: 45, modifiers: [.control, .option])
     public static let list = Self(keyCode: 0, modifiers: [.control, .option])
+    public static let vault = Self(keyCode: 35, modifiers: [.control, .option])
     public var isValid: Bool {
         // The open list owns ⌘, so it must never answer a permission request.
         !(keyCode == 43 && modifiers == .command) &&

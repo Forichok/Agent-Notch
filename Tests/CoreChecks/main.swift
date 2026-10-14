@@ -221,6 +221,15 @@ run("sessionCostFormat") { sessionCost.format() }
 let language = LanguageChecks()
 run("languageDetect") { language.detect() }
 run("languageEnglish") { language.english() }
+let promptVault = PromptVaultChecks()
+run("promptRanking") { promptVault.ranking() }
+run("promptStats") { promptVault.stats() }
+run("promptFile") { try promptVault.file() }
+let skills = SkillCatalogChecks()
+run("skillFrontMatter") { skills.frontMatter() }
+run("skillCatalog") { try skills.catalog() }
+run("skillUsage") { skills.usage() }
+run("skillRanking") { skills.ranking() }
 
 let libraryChecks = SoundLibraryChecks()
 run("soundLibraryStartupAndReplacedManifestLinks") { try libraryChecks.rejectsStartupDirectoryAndReplacedManifestLinks() }

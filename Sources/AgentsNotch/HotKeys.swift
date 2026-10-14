@@ -12,9 +12,9 @@ final class HotKeys {
     private static var actions: [UInt32: @MainActor () -> Void] = [:]
 
     init(settings supplied: AppSettings? = nil, allow: @escaping @MainActor () -> Void,
-         deny: @escaping @MainActor () -> Void, list: @escaping @MainActor () -> Void) {
+         deny: @escaping @MainActor () -> Void, list: @escaping @MainActor () -> Void, vault: @escaping @MainActor () -> Void) {
         let settings = supplied ?? .shared
-        Self.actions = [1: allow, 2: deny, 3: list]
+        Self.actions = [1: allow, 2: deny, 3: list, 4: vault]
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         InstallEventHandler(GetApplicationEventTarget(), { _, event, _ in
             var id = EventHotKeyID()

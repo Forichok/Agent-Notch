@@ -19,6 +19,8 @@ final class NotchController {
     private var outsideMonitor: Any?
     private var settingsShortcut: SettingsListShortcut?
     private var bag: Set<AnyCancellable> = []
+    /// Opens the prompt picker; set by the app delegate.
+    var onPrompts: () -> Void = {}
 
     init(store: Store) {
         self.store = store
@@ -163,6 +165,11 @@ final class NotchController {
         let settingsItem = menu.addItem(withTitle: SettingsText.window, action: #selector(SettingsWindow.show), keyEquivalent: ",")
         settingsItem.target = SettingsWindow.shared
         settingsItem.keyEquivalentModifierMask = .command
+        let prompts = NSMenuItem(title: PromptText.menu + "  " + store.settings.shortcuts.vault.display, action: #selector(MenuAction.run), keyEquivalent: "")
+        let run = MenuAction { [weak self] in self?.onPrompts() }
+        prompts.target = run
+        prompts.representedObject = run
+        menu.addItem(prompts)
         let inst = HookInstaller()
         item(inst.isInstalled(.claude) ? Loc.t("Claude Code hooks installed — remove", "Хуки Claude Code установлены — удалить")
              : Loc.t("Install Claude Code hooks", "Установить хуки Claude Code"),
@@ -217,6 +224,13 @@ final class AppActions: NSObject {
         _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
     }
 
+    /// Straight to Privacy & Security → Accessibility: the place to fix a switch that is on for an older build.
+    func openAccessibilitySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     @objc func toggleHooks(_ sender: NSMenuItem) {
         let vendor: Vendor = sender.tag == 0 ? .claude : .codex
         let inst = HookInstaller()
@@ -268,4 +282,12 @@ final class AppActions: NSObject {
         NSApp.activate(ignoringOtherApps: true)
         a.runModal()
     }
+}
+
+/// A closure as a menu target; the item keeps it alive through `representedObject`.
+@MainActor
+final class MenuAction: NSObject {
+    let body: () -> Void
+    init(_ body: @escaping () -> Void) { self.body = body }
+    @objc func run() { body() }
 }

@@ -8,7 +8,7 @@ enum TitleSource: String, Codable, CaseIterable { case session, firstPrompt, bra
 typealias RowSort = SessionSort
 typealias SubagentTree = SessionTreeMode
 typealias LimitWindow = LimitPeriod
-enum ShortcutAction: String, CaseIterable { case allow, deny, list }
+enum ShortcutAction: String, CaseIterable { case allow, deny, list, vault }
 
 /// Defaults are the «Подробно» preset; marks default to app logos with a status dot.
 struct AppearancePrefs: Codable, Equatable {
@@ -60,15 +60,31 @@ struct ShortcutPrefs: Codable, Equatable {
     var allow: NotchCore.KeyboardShortcut = .allow
     var deny: NotchCore.KeyboardShortcut = .deny
     var list: NotchCore.KeyboardShortcut = .list
+    var vault: NotchCore.KeyboardShortcut = .vault
+
+    init() {}
+    /// Settings saved before the prompt vault have no `vault` key: keep the other three and add the default.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        allow = try c.decode(NotchCore.KeyboardShortcut.self, forKey: .allow)
+        deny = try c.decode(NotchCore.KeyboardShortcut.self, forKey: .deny)
+        list = try c.decode(NotchCore.KeyboardShortcut.self, forKey: .list)
+        vault = try c.decodeIfPresent(NotchCore.KeyboardShortcut.self, forKey: .vault) ?? .vault
+    }
 
     subscript(_ action: ShortcutAction) -> NotchCore.KeyboardShortcut {
-        get { switch action { case .allow: allow; case .deny: deny; case .list: list } }
-        set { switch action { case .allow: allow = newValue; case .deny: deny = newValue; case .list: list = newValue } }
+        get { switch action { case .allow: allow; case .deny: deny; case .list: list; case .vault: vault } }
+        set { switch action { case .allow: allow = newValue; case .deny: deny = newValue; case .list: list = newValue; case .vault: vault = newValue } }
     }
     var isValid: Bool {
         let values = ShortcutAction.allCases.map { self[$0] }
-        return values.allSatisfy(\.isValid) && values[0] != values[1] && values[0] != values[2] && values[1] != values[2]
+        return values.allSatisfy(\.isValid) && values.indices.allSatisfy { i in values[(i + 1)...].allSatisfy { $0 != values[i] } }
     }
+}
+
+struct PromptPrefs: Codable, Equatable {
+    /// Put back what was on the clipboard once the prompt is pasted.
+    var restoreClipboard = true
 }
 
 struct GeneralPrefs: Codable, Equatable {

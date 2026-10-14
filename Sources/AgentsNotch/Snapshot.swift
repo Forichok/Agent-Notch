@@ -51,8 +51,10 @@ enum Snapshot {
         let libraryDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("notch-snapshot-library-" + UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: libraryDirectory) }
         let settings = AppSettings(defaults: defaults, soundLibraryDirectory: libraryDirectory)
+        let prompts = promptFixture()
+        let skills = skillFixture()
         func shot(_ section: SettingsSection, _ url: URL, height: CGFloat = SettingsView.size.height) -> Bool {
-            host(SettingsView(selection: section).environmentObject(settings).environment(\.colorScheme, .light),
+            host(SettingsView(selection: section, prompts: prompts, skills: skills).environmentObject(settings).environment(\.colorScheme, .light),
                  size: NSSize(width: SettingsView.size.width, height: height), to: url)
         }
         guard !path.hasSuffix(".png") else { return shot(.appearance, URL(fileURLWithPath: path)) }
@@ -83,6 +85,11 @@ enum Snapshot {
                 .formStyle(.grouped).environment(\.colorScheme, .light),
                 size: NSSize(width: 570, height: 2500), to: dir.appendingPathComponent("sounds-library-events.png")) && ok
         } catch { print("snapshot sound library: \(error.localizedDescription)"); ok = false }
+        for tab in [SettingsPrompts.Tab.stats, .skills] {
+            prompts.tab = tab
+            ok = shot(.vault, dir.appendingPathComponent("section-prompts-\(tab).png")) && ok
+        }
+        prompts.tab = .library
         for preset in DisplayPreset.allCases {
             settings.apply(preset)
             ok = shot(.appearance, dir.appendingPathComponent("preset-\(preset.rawValue).png")) && ok
@@ -163,6 +170,65 @@ enum Snapshot {
         guard let png = rep.representation(using: .png, properties: [:]) else { return false }
         do { try png.write(to: url); return true }
         catch { print("snapshot: \(error.localizedDescription)"); return false }
+    }
+
+    /// The starter prompts with a few weeks of made-up insertions.
+    static func promptFixture() -> PromptStore {
+        var vault = PromptVault.starter
+        let now = Date()
+        let weights = [9, 4, 14, 2, 0]
+        for (i, s) in vault.snippets.enumerated() {
+            for n in 0..<weights[i] { vault.record(s.id, at: now.addingTimeInterval(-Double((n * 37 + i * 11) % 13) * 86_400 - 3600)) }
+        }
+        return PromptStore(file: nil, vault: vault)
+    }
+
+    /// A few made-up skills of both agents.
+    static func skillFixture() -> SkillStore {
+        func skill(_ name: String, _ vendor: Vendor, _ source: InstalledSkill.Source, plugin: String? = nil, _ description: String,
+                   fields: [InstalledSkill.Field] = [], files: Int = 1) -> InstalledSkill {
+            InstalledSkill(id: "/fixture/\(vendor.rawValue)/\(name)", name: name, description: description, vendor: vendor, source: source,
+                           plugin: plugin, pluginVersion: plugin == nil ? nil : "1.1.0", project: source == .project ? "/Users/me/code/shop" : nil,
+                           enabled: plugin == nil ? nil : true, fields: fields,
+                           body: "# \(name)\n\n1. Read the request.\n2. Do the work.\n3. Check the result before answering.",
+                           folder: "/Users/me/.claude/skills/\(name)", files: files, bytes: files * 2400,
+                           modified: Date().addingTimeInterval(-3 * 86_400))
+        }
+        let list = [
+            skill("commit-hygiene", .claude, .user, "Conventional Commits, scopes and a preflight before every commit.",
+                  fields: [.init(key: "allowed-tools", value: "Bash, Read")], files: 3),
+            skill("copywriter", .claude, .project, "Voice and UX-copy rules for the shop: short, plain, no jargon."),
+            skill("decide", .claude, .plugin, plugin: "decide", "Let the user make decisions on a local browser page."),
+            skill("imagegen", .codex, .system, "Generate or edit raster images.", files: 12),
+            skill("pdf", .codex, .plugin, plugin: "pdf", "Read, create and verify PDF files.", files: 4),
+        ]
+        let ago = { (d: Double) in Date().addingTimeInterval(-d * 86_400) }
+        return SkillStore(fixture: list, uses: ["commit-hygiene": SkillUse(count: 12, last: ago(1)),
+                                                "copywriter": SkillUse(count: 9, last: ago(2)),
+                                                "decide:decide": SkillUse(count: 2, last: ago(5))])
+    }
+
+    /// `--snapshot-prompts <file.png>`: the picker over a grey desktop.
+    /// A `-skills` copy next to it shows the skills tab.
+    static func runPrompts(to file: String) -> Bool {
+        let prompts = promptFixture(), skills = skillFixture()
+        func shot(_ mode: PromptPickerModel.Mode, _ url: URL, theme: Theme = .terminal) -> Bool {
+            let model = PromptPickerModel()
+            model.mode = mode
+            model.selected = 1
+            model.trusted = true
+            let view = PromptPickerView(store: prompts, skills: skills, model: model, theme: theme)
+                .padding(30).background(Color(white: 0.35))
+            return host(view, size: NSSize(width: PromptPicker.width + 60, height: 520), to: url)
+        }
+        let url = URL(fileURLWithPath: file)
+        let skillsURL = url.deletingPathExtension().appendingPathExtension("skills").appendingPathExtension("png")
+        // Every other theme next to it, so a check can see the picker follow the list.
+        var ok = shot(.prompts, url) && shot(.skills, skillsURL)
+        for id in ThemeID.allCases where id != .terminal {
+            ok = shot(.prompts, url.deletingPathExtension().appendingPathExtension(id.rawValue).appendingPathExtension("png"), theme: Theme.of(id)) && ok
+        }
+        return ok
     }
 
     static func runUsage(to file: String) -> Bool {

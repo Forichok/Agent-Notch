@@ -145,7 +145,7 @@ enum SettingsText {
         "attention": "Сначала ждущие", "recent": "Сначала новые", "name": "По имени",
         "auto": "Авто", "expanded": "Все", "collapsed": "Свёрнуты", "hidden": "Не показывать",
         "short": "5 часов", "weekly": "Неделя",
-        "allow": "Разрешить", "deny": "Отклонить", "list.key": "Открыть список",
+        "allow": "Разрешить", "deny": "Отклонить", "list.key": "Открыть список", "vault.key": "Вставить промпт", "vault": "Промпты и скиллы",
         "statusMark": "Значок", "title": "Название", "model": "Модель", "effort": "Режим размышлений", "worktree": "Папка и ветка",
         "activity": "Что агент делает сейчас", "runningTime": "Время работы", "context": "Контекст", "cost": "Стоимость",
         "done": "Сделано", "remaining": "Осталось", "files": "Файлы", "log": "Лог", "prompts": "Запросы", "commands": "Команды и тесты",
@@ -163,7 +163,7 @@ enum SettingsText {
         "attention": "Waiting first", "recent": "Newest first", "name": "By name",
         "auto": "Auto", "expanded": "All", "collapsed": "Collapsed", "hidden": "Hidden",
         "short": "5 hours", "weekly": "Week",
-        "allow": "Allow", "deny": "Deny", "list.key": "Open the list",
+        "allow": "Allow", "deny": "Deny", "list.key": "Open the list", "vault.key": "Insert a prompt", "vault": "Prompts & skills",
         "statusMark": "Icon", "title": "Name", "model": "Model", "effort": "Thinking mode", "worktree": "Folder and branch",
         "activity": "What the agent is doing", "runningTime": "Running time", "context": "Context", "cost": "Cost",
         "done": "Done", "remaining": "Remaining", "files": "Files", "log": "Log", "prompts": "Prompts", "commands": "Commands and tests",
@@ -175,7 +175,7 @@ enum SettingsText {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case appearance, list, requests, sounds, limits, connection, general
+    case appearance, list, requests, sounds, vault, limits, connection, general
     var id: String { rawValue }
     var title: String { SettingsText.name(rawValue) }
     var icon: String {
@@ -184,6 +184,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .list: "list.bullet"
         case .requests: "questionmark"
         case .sounds: "speaker.wave.2.fill"
+        case .vault: "text.quote"
         case .limits: "gauge.with.dots.needle.33percent"
         case .connection: "powerplug.fill"
         case .general: "gearshape.fill"
@@ -195,6 +196,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .list: Color(red: 0.37, green: 0.36, blue: 0.9)
         case .requests: Color(red: 1, green: 0.62, blue: 0.04)
         case .sounds: Color(red: 0.84, green: 0.28, blue: 0.44)
+        case .vault: Color(red: 0.62, green: 0.36, blue: 0.9)
         case .limits: Color(red: 0.19, green: 0.69, blue: 0.78)
         case .connection: Color(red: 0.2, green: 0.78, blue: 0.35)
         case .general: Color(white: 0.56)

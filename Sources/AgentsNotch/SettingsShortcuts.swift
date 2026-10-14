@@ -13,7 +13,7 @@ struct SettingsShortcuts: View {
     var body: some View {
         Section {
             ForEach(ShortcutAction.allCases, id: \.self) { action in
-                LabeledContent(SettingsText.name(action == .list ? "list.key" : action.rawValue)) {
+                LabeledContent(SettingsText.name(action == .list || action == .vault ? action.rawValue + ".key" : action.rawValue)) {
                     HStack {
                         Text(settings.shortcuts[action].display).font(.system(.body, design: .monospaced))
                             .padding(.horizontal, 10).padding(.vertical, 4)

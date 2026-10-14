@@ -1,11 +1,19 @@
 import AppKit
+import Combine
 import SwiftUI
 import NotchCore
 
 @MainActor
 final class SettingsWindow: NSObject, NSWindowDelegate {
     static let shared = SettingsWindow()
+    /// Opens a section in a window that may already be on screen.
+    static let route = PassthroughSubject<SettingsSection, Never>()
     private var window: NSWindow?
+
+    func open(_ section: SettingsSection) {
+        show()
+        DispatchQueue.main.async { Self.route.send(section) }
+    }
 
     @objc func show() {
         if window == nil {
@@ -36,6 +44,9 @@ struct SettingsView: View {
     static let size = NSSize(width: 780, height: 640)
     @EnvironmentObject private var settings: AppSettings
     @State var selection: SettingsSection = .appearance
+    /// Snapshots pass an isolated vault; the app shows the real one.
+    var prompts: PromptStore = .shared
+    var skills: SkillStore = .shared
 
     var body: some View {
         HStack(spacing: 0) {
@@ -69,6 +80,7 @@ struct SettingsView: View {
                     case .list: SettingsListSection(settings: settings)
                     case .requests: SettingsRequests(settings: settings)
                     case .sounds: SettingsSounds(settings: settings)
+                    case .vault: SettingsPrompts(settings: settings, prompts: prompts, skills: skills)
                     case .limits: SettingsLimits(settings: settings)
                     case .connection: SettingsConnection(settings: settings)
                     case .general: SettingsGeneral(settings: settings)
@@ -80,6 +92,7 @@ struct SettingsView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .frame(minWidth: 720, minHeight: 560)
+        .onReceive(SettingsWindow.route) { selection = $0 }
     }
 }
 

@@ -31,6 +31,7 @@ final class AppSettings: ObservableObject {
     @Published var behavior: BehaviorPrefs { didSet { save(behavior, "behavior"); visibilityObservers.values.forEach { $0() } } }
     @Published var shortcuts: ShortcutPrefs { didSet { save(shortcuts, "shortcuts") } }
     @Published var general: GeneralPrefs { didSet { save(general, "general") } }
+    @Published var prompts: PromptPrefs { didSet { save(prompts, "prompts") } }
     @Published var answerFromNotch: Bool { didSet { save(answerFromNotch, "answerFromNotch") } }
     @Published var sounds: Bool { didSet { if !sounds { SoundPlayer.shared.stop() }; save(sounds, "sounds") } }
     let soundLibrary: SoundLibrary
@@ -73,6 +74,7 @@ final class AppSettings: ObservableObject {
         soundEvents = load("soundEvents", SoundPrefs(legacyName: savedBehavior.soundName))
         shortcuts = load("shortcuts", ShortcutPrefs())
         general = load("general", GeneralPrefs())
+        prompts = load("prompts", PromptPrefs())
         answerFromNotch = load("answerFromNotch", true)
         sounds = load("sounds", true)
         finishToast = load("finishToast", true)
@@ -111,6 +113,7 @@ final class AppSettings: ObservableObject {
         fresh.hiddenProjects = hidden
         behavior = fresh
         shortcuts = ShortcutPrefs()
+        prompts = PromptPrefs()
         answerFromNotch = true
         sounds = true
         soundEvents = SoundPrefs()
