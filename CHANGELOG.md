@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Prompts and skills on ⌃⌥P: a search box under the notch over any app. ↩ pastes a saved prompt where the cursor is (through the clipboard, which is put back), ⌘↩ copies, ⌘1–9 picks by row; most used lately first. ⇥ switches to installed skills of Claude Code and Codex and pastes their call.
+- Settings → Prompts & skills: the prompt library, insertion statistics (totals, last 14 days, most used) and a Skills tab with each skill's description, front matter, files, SKILL.md and how often Claude Code called it.
+
+### Fixed
+
+- Accessibility access survives app updates and rebuilds: the ad-hoc signature now requires the bundle id instead of its own hash.
+
 ## [0.4.0] - 2026-10-14
 
 ### Added

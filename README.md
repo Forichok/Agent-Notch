@@ -54,6 +54,29 @@ Subagents are smaller and sit next to their parent. Past six agents in a project
 
 Nothing is approved without a human click. If nobody answers in 100 seconds, the agent asks in its own window as usual.
 
+## Prompts and skills on a hotkey
+
+<table>
+<tr>
+<td width="50%"><img src="assets/screens/prompts.png" alt="The picker under the notch: five saved prompts, most used first, with use counts and ⌘1–⌘5"></td>
+<td width="50%"><img src="assets/screens/prompts-skills.png" alt="The same picker on the Skills tab: Claude Code and Codex skills with their calls and descriptions"></td>
+</tr>
+<tr>
+<td valign="top"><b>Saved prompts.</b> <kbd>⌃⌥P</kbd> opens a search box over any app; <kbd>↩</kbd> pastes the prompt where the cursor is, <kbd>⌘↩</kbd> only copies it, <kbd>⌘1</kbd>–<kbd>⌘9</kbd> picks by row. What you used most lately comes first.</td>
+<td valign="top"><b>Installed skills.</b> <kbd>⇥</kbd> switches to every skill Claude Code and Codex can load: yours, built in, from plugins and from your projects. <kbd>↩</kbd> pastes the call: <code>/name</code>, <code>/plugin:name</code> or <code>$name</code>.</td>
+</tr>
+<tr>
+<td width="50%"><img src="assets/screens/prompts-stats.png" alt="Settings, Prompts and skills, Statistics: totals, a bar per day for 14 days and the most used prompts"></td>
+<td width="50%"><img src="assets/screens/skills.png" alt="Settings, Prompts and skills, Skills: the list by agent and source, and one skill's description, call, use count, files and SKILL.md"></td>
+</tr>
+<tr>
+<td valign="top"><b>Library and statistics.</b> <b>Settings → Prompts & skills</b> keeps the library (add, edit, duplicate, drag to reorder) and counts insertions: totals, the last 14 days, the most used.</td>
+<td valign="top"><b>What each skill is.</b> Description, front matter, files, the SKILL.md itself, and how often Claude Code called it, read from its session logs.</td>
+</tr>
+</table>
+
+Pasting goes through the clipboard and a ⌘V the app presses, so it needs Accessibility access; without it the prompt is copied. The clipboard is put back right after. Prompts live in `~/Library/Application Support/AgentsNotch/prompts.json`.
+
 ## Themes and sounds
 
 Thirteen themes for the list, from plain Terminal to Phosphor, Blueprint, Pixel and Rubber Ducks. Every theme except Terminal can also restyle the marks in the wing.
@@ -112,6 +135,7 @@ Requires macOS 14+ on Apple Silicon.
 |---|---|
 | <kbd>⌃⌥A</kbd> | Open or close the list |
 | <kbd>⌃⌥Y</kbd> / <kbd>⌃⌥N</kbd> | Allow / deny the oldest request |
+| <kbd>⌃⌥P</kbd> | Paste a saved prompt or a skill call; <kbd>⇥</kbd> switches between them |
 | Double-click a row | Open that agent's window |
 | Right-click the wing | Hooks, sound, open at login, quit |
 
@@ -124,7 +148,9 @@ Requires macOS 14+ on Apple Silicon.
 
 **Language?** English, or Russian on a Russian system. Force one with `AGENT_NOTCH_LANG=en` or `ru`.
 
-**What does it read?** Files under `~/.claude` and `~/.codex`, plus the Claude app's plan-usage file. Hook decisions are logged to `~/Library/Application Support/AgentsNotch/decisions.jsonl`.
+**What does it read?** Files under `~/.claude` and `~/.codex`, plus the Claude app's plan-usage file. The Skills tab also reads `SKILL.md` files in the projects listed in `~/.claude.json` and `~/.codex/config.toml`. Hook decisions are logged to `~/Library/Application Support/AgentsNotch/decisions.jsonl`.
+
+**Why Accessibility?** To shrink the wing when a menu reaches it and to press ⌘V when you paste a prompt. Nothing else.
 
 **Uninstall?** `brew uninstall --zap agent-notch` also removes the hooks.
 </details>
