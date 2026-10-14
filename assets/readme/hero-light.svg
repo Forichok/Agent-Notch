@@ -50,10 +50,10 @@ text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",He
 <text x="931.0" y="286" font-size="20" font-weight="600" text-anchor="middle" fill="#d7dbe3">Deny  ⌃⌥N</text>
 </g>
 <g transform="translate(714.0,284)"><g class="cur"><path d="M0 0 L0 30 L8 23 L13 35 L19 32 L14 21 L24 21 Z" fill="#fff" stroke="#000" stroke-width="2" stroke-linejoin="round"/></g></g>
-<text x="820.0" y="456" font-size="88" font-weight="700" text-anchor="middle" letter-spacing="-2" fill="#14171d">Agent Notch</text>
-<g transform="translate(610.0,502)" font-size="24" fill="#5b6472">
-<circle cx="0" cy="-8" r="8" fill="#34c759"/><text x="16" y="0">working</text>
-<circle cx="140" cy="-8" r="8" fill="#ffb31a"/><text x="156" y="0">waiting for you</text>
-<circle cx="355" cy="-8" r="8" fill="#5a5f69"/><text x="371" y="0">done</text>
+<text x="820.0" y="448" font-size="92" font-weight="700" text-anchor="middle" letter-spacing="-2" fill="#14171d">Agent Notch</text>
+<g transform="translate(558.0,508)" font-size="30" fill="#5b6472">
+<circle cx="0" cy="-10" r="10" fill="#34c759"/><text x="20" y="0">working</text>
+<circle cx="172" cy="-10" r="10" fill="#ffb31a"/><text x="192" y="0">waiting for you</text>
+<circle cx="440" cy="-10" r="10" fill="#5a5f69"/><text x="460" y="0">done</text>
 </g>
 </svg>

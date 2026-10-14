@@ -98,11 +98,11 @@ text{{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",H
 <text x="{allow_x + 337}" y="{allow_y + 28}" font-size="20" font-weight="600" text-anchor="middle" fill="#d7dbe3">Deny  ⌃⌥N</text>
 </g>
 <g transform="translate({allow_x + 120},{allow_y + 26})"><g class="cur"><path d="M0 0 L0 30 L8 23 L13 35 L19 32 L14 21 L24 21 Z" fill="#fff" stroke="#000" stroke-width="2" stroke-linejoin="round"/></g></g>
-<text x="{CX}" y="{H - 104}" font-size="88" font-weight="700" text-anchor="middle" letter-spacing="-2" fill="{c['fg']}">Agent Notch</text>
-<g transform="translate({CX - 210},{H - 58})" font-size="24" fill="{c['mut']}">
-<circle cx="0" cy="-8" r="8" fill="{GREEN}"/><text x="16" y="0">working</text>
-<circle cx="140" cy="-8" r="8" fill="{YELLOW}"/><text x="156" y="0">waiting for you</text>
-<circle cx="355" cy="-8" r="8" fill="{GREY}"/><text x="371" y="0">done</text>
+<text x="{CX}" y="{H - 112}" font-size="92" font-weight="700" text-anchor="middle" letter-spacing="-2" fill="{c['fg']}">Agent Notch</text>
+<g transform="translate({CX - 262},{H - 52})" font-size="30" fill="{c['mut']}">
+<circle cx="0" cy="-10" r="10" fill="{GREEN}"/><text x="20" y="0">working</text>
+<circle cx="172" cy="-10" r="10" fill="{YELLOW}"/><text x="192" y="0">waiting for you</text>
+<circle cx="440" cy="-10" r="10" fill="{GREY}"/><text x="460" y="0">done</text>
 </g>
 </svg>
 '''
