@@ -1,24 +1,25 @@
 <div align="center">
 
-<img src="assets/icon-1024.png" width="112" alt="Agent Notch icon">
-
-# Agent Notch
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hero-dark.svg">
+  <img src="assets/readme/hero-light.svg" width="820" alt="Agent Notch. Agent marks sit beside the notch; one turns yellow, a permission card drops down and a click on Allow sends it back to work">
+</picture>
 
 **Your Claude Code and Codex agents, live in the MacBook notch.**<br>
 See who's working and who's waiting for you. Approve commands without switching windows.
 
 [![Release](https://img.shields.io/github/v/release/Forichok/Agent-Notch?style=flat-square&color=orange)](https://github.com/Forichok/Agent-Notch/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Forichok/Agent-Notch/total?style=flat-square&color=blue)](https://github.com/Forichok/Agent-Notch/releases)
-![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
-
-<img src="assets/promo.webp" width="820" alt="From the launch film: a laptop on a desk with the agent list in the notch, the lid opening at dawn, the theme recolouring the room">
 
 ```bash
 brew install --cask forichok/tap/agent-notch
 ```
 
 [Download DMG](https://github.com/Forichok/Agent-Notch/releases/latest) · [Watch the film (72 s)](https://github.com/user-attachments/assets/e0233797-1f4f-46ff-a82c-b08d428b05c9) · [Русский](README.ru.md)
+
+<img src="assets/promo.webp" width="820" alt="From the launch film: a laptop on a desk with the agent list in the notch, the lid opening at dawn, the theme recolouring the room">
 
 </div>
 
@@ -62,6 +63,8 @@ Thirteen themes for the list, from plain Terminal to Phosphor, Blueprint, Pixel 
 Sounds are set per event: an agent waits for permission, asks a question, proposes a plan, finishes, fails, or a limit runs low. Out of the box only "waiting for permission" makes a sound. Change it in **Settings → Sounds**.
 
 ## Keep the Mac awake with the lid closed
+
+<img src="assets/readme/keep-awake.jpg" width="820" alt="Still from the launch film, marked as a dramatisation: agent logs float above a closed laptop at night">
 
 The **Keep awake** switch sits at the top right of the agent list. It uses macOS's `pmset disablesleep` setting and shows the state read back from the system. The setting applies to the whole Mac and stays on after you quit Agent Notch, until you switch it off. Switch it off before putting the Mac in a bag.
 

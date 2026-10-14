@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 560" width="820" height="280" role="img" aria-label="Agent Notch: agent marks beside the notch; one asks for permission and a click allows it">
+<style>
+text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Helvetica,Arial,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.m{opacity:0;animation:mk 8s ease-out infinite}
+.m1{animation-delay:0s} .m2{animation-name:mk2} .m3{animation-name:mk3} .m5{animation-name:mk5}
+.wait{animation:mk4 8s ease-out infinite,wt 8s linear infinite}
+@keyframes mk{0%{opacity:0}4%,94%{opacity:1}100%{opacity:0}}
+@keyframes mk2{0%,5%{opacity:0}9%,94%{opacity:1}100%{opacity:0}}
+@keyframes mk3{0%,8%{opacity:0}12%,94%{opacity:1}100%{opacity:0}}
+@keyframes mk4{0%,11%{opacity:0}15%,94%{opacity:1}100%{opacity:0}}
+@keyframes mk5{0%,14%{opacity:0}18%,94%{opacity:1}100%{opacity:0}}
+@keyframes wt{0%,19%{fill:#34c759}21%,29%{fill:#ffb31a}33%{fill:#b07a10}37%{fill:#ffb31a}41%{fill:#b07a10}45%,58%{fill:#ffb31a}60%,100%{fill:#34c759}}
+.ring{fill:none;stroke:#ffb31a;stroke-width:3;opacity:0;transform-box:fill-box;transform-origin:center;animation:ring 8s ease-out infinite}
+@keyframes ring{0%,20%{opacity:0;transform:scale(1)}21%{opacity:.9;transform:scale(1)}33%{opacity:0;transform:scale(2.4)}34%{opacity:.9;transform:scale(1)}46%{opacity:0;transform:scale(2.4)}100%{opacity:0}}
+.card{opacity:0;animation:card 8s cubic-bezier(.2,.8,.2,1) infinite}
+@keyframes card{0%,22%{opacity:0;transform:translateY(-26px)}26%,66%{opacity:1;transform:translateY(0)}71%,100%{opacity:0;transform:translateY(-26px)}}
+.allow{animation:allow 8s linear infinite}
+@keyframes allow{0%,57%{fill:#34c759}58%,61%{fill:#7ee29a}63%,100%{fill:#34c759}}
+.cur{opacity:0;animation:cur 8s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes cur{0%,36%{opacity:0;transform:translate(260px,90px)}39%{opacity:1;transform:translate(260px,90px)}55%{opacity:1;transform:translate(0,0)}58%{transform:translate(0,0) scale(.86)}60%{transform:translate(0,0) scale(1)}64%{opacity:1}68%,100%{opacity:0;transform:translate(0,0)}}
+@media (prefers-reduced-motion:reduce){.m,.wait{animation:none;opacity:1}.card,.cur,.ring{animation:none}}
+</style>
+<defs>
+<radialGradient id="glow" cx="50%" cy="0%" r="60%"><stop offset="0" stop-color="#3b4cff" stop-opacity=".22"/><stop offset="1" stop-color="#3b4cff" stop-opacity="0"/></radialGradient>
+<filter id="sh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity=".35"/></filter>
+</defs>
+<rect width="1640" height="560" rx="28" fill="#0b0d12"/>
+<rect width="1640" height="560" rx="28" fill="url(#glow)"/>
+<rect x="70" y="40" width="1500" height="84" rx="16" fill="#1a1d24"/>
+<line x1="70" y1="124" x2="1570" y2="124" stroke="#2a2e37" stroke-width="2"/>
+<rect x="110" y="75.0" width="22" height="14" rx="7" fill="#8b93a1" opacity=".35"/><rect x="150" y="75.0" width="40" height="14" rx="7" fill="#8b93a1" opacity=".35"/><rect x="206" y="75.0" width="36" height="14" rx="7" fill="#8b93a1" opacity=".35"/><rect x="258" y="75.0" width="50" height="14" rx="7" fill="#8b93a1" opacity=".35"/><rect x="1260" y="75.0" width="30" height="14" rx="7" fill="#8b93a1" opacity=".35"/><rect x="1310" y="75.0" width="30" height="14" rx="7" fill="#8b93a1" opacity=".35"/><rect x="1360" y="75.0" width="30" height="14" rx="7" fill="#8b93a1" opacity=".35"/><rect x="1410" y="75.0" width="110" height="14" rx="7" fill="#8b93a1" opacity=".35"/>
+<path d="M350.0 40 H1000.0 V100 a24 24 0 0 1 -24 24 H374.0 a24 24 0 0 1 -24 -24 Z" fill="#000"/>
+<circle cx="880.0" cy="82.0" r="7" fill="#11141b"/><circle cx="880.0" cy="82.0" r="3" fill="#1d2433"/>
+<circle class="m m1" cx="408.0" cy="82.0" r="17.0" fill="#34c759"/>
+<circle class="m m2" cx="445.0" cy="82.0" r="9.5" fill="#34c759"/>
+<rect class="m m3" x="481.0" y="65.0" width="34" height="34" rx="9.18" fill="#34c759"/>
+<circle class="m m4 wait" cx="558.0" cy="82.0" r="17.0" fill="#34c759"/>
+<rect class="m m5" x="597.0" y="65.0" width="34" height="34" rx="9.18" fill="#5a5f69"/>
+<circle class="ring" cx="558.0" cy="82.0" r="17"/>
+<g class="card" filter="url(#sh)">
+<rect x="570.0" y="142" width="500" height="176" rx="20" fill="#16181e" stroke="#2c303a" stroke-width="2"/>
+<circle cx="604.0" cy="180" r="9" fill="#ffb31a"/>
+<text x="626.0" y="188" font-size="23" font-weight="600" fill="#f2f4f8">Bash command</text>
+<text x="1046.0" y="188" font-size="20" text-anchor="end" fill="#8b93a1">wedding-app</text>
+<text class="mono" x="594.0" y="232" font-size="22" fill="#d7dbe3">pnpm --filter api test</text>
+<rect class="allow" x="594.0" y="258" width="214" height="42" rx="11" fill="#34c759"/>
+<text x="701.0" y="286" font-size="20" font-weight="600" text-anchor="middle" fill="#06210f">Allow  ⌃⌥Y</text>
+<rect x="824.0" y="258" width="214" height="42" rx="11" fill="#2a2d35"/>
+<text x="931.0" y="286" font-size="20" font-weight="600" text-anchor="middle" fill="#d7dbe3">Deny  ⌃⌥N</text>
+</g>
+<g transform="translate(714.0,284)"><g class="cur"><path d="M0 0 L0 30 L8 23 L13 35 L19 32 L14 21 L24 21 Z" fill="#fff" stroke="#000" stroke-width="2" stroke-linejoin="round"/></g></g>
+<text x="820.0" y="456" font-size="88" font-weight="700" text-anchor="middle" letter-spacing="-2" fill="#f2f4f8">Agent Notch</text>
+<g transform="translate(610.0,502)" font-size="24" fill="#8b93a1">
+<circle cx="0" cy="-8" r="8" fill="#34c759"/><text x="16" y="0">working</text>
+<circle cx="140" cy="-8" r="8" fill="#ffb31a"/><text x="156" y="0">waiting for you</text>
+<circle cx="355" cy="-8" r="8" fill="#5a5f69"/><text x="371" y="0">done</text>
+</g>
+</svg>
