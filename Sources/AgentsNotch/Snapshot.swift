@@ -398,7 +398,10 @@ enum Snapshot {
     }
 
     static func runUsage(to file: String) -> Bool {
-        host(UsageSnapshot(), size: NSSize(width: 380, height: 300), to: URL(fileURLWithPath: file))
+        guard let scratch = ScratchDefaults("snapshot") else { return false }
+        defer { scratch.remove() }
+        return host(UsageSnapshot().environmentObject(AppSettings(defaults: scratch.defaults)),
+                    size: NSSize(width: 380, height: 300), to: URL(fileURLWithPath: file))
     }
 
     static func runMarks(to file: String) -> Bool {

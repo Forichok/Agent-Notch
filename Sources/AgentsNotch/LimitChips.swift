@@ -3,7 +3,7 @@ import NotchCore
 
 struct LimitChips: View {
     @ObservedObject var usage: UsageModel
-    @ObservedObject var settings: AppSettings = .shared
+    @EnvironmentObject private var settings: AppSettings
     var mode: LimitChipMode? = nil
 
     var body: some View {

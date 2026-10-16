@@ -6,7 +6,8 @@ import NotchCore
 /// `--install-hooks` / `--uninstall-hooks` edit the Claude Code and Codex hook files and quit.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let store = Store()
+    // Lazy: snapshot and hook flags exit before it, so they never build `AppSettings.shared` on the real domain.
+    lazy var store = Store()
     var notch: NotchController?
     var watcher: MenuWatcher?
     var keys: HotKeys?
