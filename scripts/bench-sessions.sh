@@ -2,6 +2,10 @@
 # No network or installed app. Compile identical harnesses against the two source trees.
 set -eu
 cd "$(dirname "$0")/.."
+if [ "${1:-}" = "--incremental" ]; then
+  shift
+  exec python3 scripts/SessionBenchmark/incremental.py "$@"
+fi
 BASE=${BENCH_BASE:-origin/master}
 ROOT=/tmp/an06-bench
 rm -rf "$ROOT/baseline"

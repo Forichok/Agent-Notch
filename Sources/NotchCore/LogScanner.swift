@@ -13,6 +13,7 @@ public final class LogScanner: @unchecked Sendable {
         var device: dev_t?
         var inode: ino_t?
         var modified: Double = 0
+        var observed: FileStamp?
         let physicalPath: String
 
         init(log: SessionLog, offset: UInt64, isSubagent: Bool, isExec: Bool = false, initial: SessionLog? = nil) {
@@ -26,6 +27,7 @@ public final class LogScanner: @unchecked Sendable {
     }
 
     // Observers report actual I/O without replacing filesystem operations.
+    var didOpen: ((String) -> Void)?
     var didRead: ((Int) -> Void)?
     var didStat: ((String) -> Void)?
     var didList: ((String) -> Void)?
@@ -34,6 +36,8 @@ public final class LogScanner: @unchecked Sendable {
     private var claudeSessions: URL
     private var codexRoot: URL
     private let config: ConfigRoots
+    private let rootEntries: [URL]
+    private var rootEntryStamps: [String: FileStamp] = [:]
     private let names = ProjectNames()
     private let fm = FileManager.default
     private var files: [String: Tracked] = [:]
@@ -42,14 +46,27 @@ public final class LogScanner: @unchecked Sendable {
     private var pending: (Date, Double, FileChanges?)?
     private var liveFiles: [String: (String, ClaudeLive)] = [:]
     private var runs: [ExecRun] = []
-    private struct DirectoryStamp: Equatable {
-        let modified: Date
-        let inode: UInt64
-        let device: UInt64
-    }
-    private var codexDirectories: [String: (DirectoryStamp, [URL])] = [:]
-    private var codexDays: [String: (newest: Double, checked: Double)] = [:]
     private var lastDiscovery: Double = 0
+    private var lastReconciliation: Double?
+    public static let reconciliationInterval: Double = 180
+    private var physicalFiles: [String: Set<String>] = [:]
+    private var metadata: [String: FileStamp] = [:]
+    private var liveMetadata: [String: FileStamp] = [:]
+    private struct FileStamp: Equatable {
+        let size: Int64
+        let modified: timespec
+        let changed: timespec
+        let inode: ino_t
+        let device: dev_t
+        let directory: Bool
+        static func == (a: Self, b: Self) -> Bool {
+            a.size == b.size && a.modified.tv_sec == b.modified.tv_sec && a.modified.tv_nsec == b.modified.tv_nsec &&
+            a.changed.tv_sec == b.changed.tv_sec && a.changed.tv_nsec == b.changed.tv_nsec &&
+            a.inode == b.inode && a.device == b.device && a.directory == b.directory
+        }
+        var mtime: Double { Double(modified.tv_sec) + Double(modified.tv_nsec) / 1e9 }
+    }
+    private var listings: [String: (FileStamp, [URL])] = [:]
     public private(set) var nextRetentionExpiry: Date?
     private var lastRetention: Double?
     private let execRuns: () -> [ExecRun]
@@ -68,6 +85,8 @@ public final class LogScanner: @unchecked Sendable {
                 rolloutParents: (() -> [String: [String]])? = nil) {
         self.execRuns = execRuns
         config = ConfigRoots(home: home)
+        rootEntries = [config.root(.claude), config.root(.codex), config.logs(.claude), config.logs(.codex),
+                       config.root(.claude).appendingPathComponent("sessions")]
         claudeRoot = ConfigRoots.physical(ConfigRoots(home: home).logs(.claude))
         claudeSessions = ConfigRoots.physical(ConfigRoots(home: home).root(.claude).appendingPathComponent("sessions"))
         codexRoot = ConfigRoots.physical(ConfigRoots(home: home).logs(.codex))
@@ -117,52 +136,73 @@ public final class LogScanner: @unchecked Sendable {
     private func scan(now: Date, finishedRetention: Double, changes: FileChanges?) -> [Agent] {
         let t = now.timeIntervalSince1970
         let window = max(finishedRetention, SessionLog.longTool, 3_600)
-        var changed = changes?.changedPaths.map { Set($0.map { ConfigRoots.physical(URL(fileURLWithPath: $0)).path }) }
+        let changed = changes?.changedPaths.map { paths in
+            Set(paths.map { path in
+                // FSEvents already supplies canonical paths. Resolve only unfamiliar aliases.
+                if files[path] != nil || metadata[path] != nil || listings[path] != nil || physicalFiles[path] != nil { return path }
+                return ConfigRoots.physical(URL(fileURLWithPath: path)).path
+            })
+        }
         var full = changes == .full
-        if full || changed?.isEmpty == false {
-            let claude = ConfigRoots.physical(config.logs(.claude))
-            let codex = ConfigRoots.physical(config.logs(.codex))
-            let sessions = ConfigRoots.physical(config.root(.claude).appendingPathComponent("sessions"))
-            if claude.path != claudeRoot.path || codex.path != codexRoot.path || sessions.path != claudeSessions.path {
-                claudeRoot = claude
-                codexRoot = codex
-                claudeSessions = sessions
-                files = files.filter { $0.value.isExec }
-                full = true
-            }
-        }
-        if full { changed = nil }
-        if full {
-            // A safety/drop scan must not trust directory stamps or cold-day caches.
-            codexDirectories.removeAll()
-            codexDays.removeAll()
-        }
-        if full || (changes == nil && (t - lastDiscovery >= 5 || lastRetention != finishedRetention)) {
-            lastDiscovery = t
-            lastRetention = finishedRetention
-            discover(now: t, window: window)
-        } else if let changed {
-            discoverChanged(changed, now: t, window: window)
-        }
-        if changes?.refreshProcesses == true, !full {
-            let previous = Set(runs.map(\.log))
-            discoverProcesses()
-            // Process exit may beat the delayed FSEvents delivery. Drain stdout before unwatching it.
-            changed?.formUnion(previous.union(runs.map(\.log)).map { ConfigRoots.physical(URL(fileURLWithPath: $0)).path })
-        }
-        if changed == nil || changed?.contains(where: { contains($0, claudeSessions.path) }) == true {
-            liveFiles.removeAll()
-            for file in children(claudeSessions) where file.pathExtension == "json" { refreshLive(file) }
-        } else if let changed {
-            for path in changed where contains(claudeSessions.path, path) {
-                let url = URL(fileURLWithPath: path)
-                if url.pathExtension == "json" { refreshLive(url) }
-                else {
-                    liveFiles = liveFiles.filter { !contains(path, $0.key) }
-                    for file in children(url) where file.pathExtension == "json" { refreshLive(file) }
+        let due = lastReconciliation == nil ||
+            t - (lastReconciliation ?? t) >= (changes == nil ? 55 : Self.reconciliationInterval) ||
+            lastRetention != finishedRetention
+        if full || due || changed?.isEmpty == false {
+            let entriesChanged = configurationChanged()
+            if full || due || entriesChanged {
+                let claude = ConfigRoots.physical(config.logs(.claude))
+                let codex = ConfigRoots.physical(config.logs(.codex))
+                let sessions = ConfigRoots.physical(config.root(.claude).appendingPathComponent("sessions"))
+                if claude.path != claudeRoot.path || codex.path != codexRoot.path || sessions.path != claudeSessions.path {
+                    claudeRoot = claude
+                    codexRoot = codex
+                    claudeSessions = sessions
+                    files = files.filter { $0.value.isExec }
+                    listings.removeAll()
+                    metadata.removeAll()
+                    liveMetadata.removeAll()
+                    full = true
                 }
             }
         }
+        let reconcile = full || due
+        var dirty: Set<String> = []
+        if reconcile {
+            lastReconciliation = t
+            lastDiscovery = t
+            lastRetention = finishedRetention
+            let previous = Set(runs.map(\.log))
+            discoverProcesses()
+            dirty.formUnion(previous.union(runs.map(\.log)))
+            dirty.formUnion(discoverIndexed(paths: [claudeRoot.path, codexRoot.path], now: t, window: window, reconcile: true))
+            refreshLiveDirectory(reconcile: true)
+        } else if changes == nil && t - lastDiscovery >= 5 {
+            lastDiscovery = t
+            discoverProcesses()
+            dirty.formUnion(discoverIndexed(paths: [claudeRoot.path, codexRoot.path], now: t, window: window, reconcile: false, sweep: true))
+        }
+        if let changed, !full {
+            dirty.formUnion(discoverIndexed(paths: changed, now: t, window: window, reconcile: false))
+            for path in changed {
+                if contains(path, claudeSessions.path) { refreshLiveDirectory(reconcile: false) }
+                else if contains(claudeSessions.path, path) {
+                    let url = URL(fileURLWithPath: path)
+                    if url.pathExtension == "json" { refreshLive(url) }
+                    else { refreshLiveDirectory(reconcile: false) }
+                }
+            }
+        }
+        if changes?.refreshProcesses == true, !reconcile {
+            let previous = Set(runs.map(\.log))
+            discoverProcesses()
+            dirty.formUnion(previous.union(runs.map(\.log)))
+        }
+        // Legacy callers have no event source, so check retained files on each poll.
+        if changes == nil {
+            dirty.formUnion(files.keys)
+            if !reconcile { refreshLiveDirectory(reconcile: true) }
+        }
+        for path in dirty { read(path, now: t) }
         // No directory listing or JSON parsing on liveness-only ticks.
         for path in Array(liveFiles.keys) {
             if let pid = liveFiles[path]?.1.pid { liveFiles[path]?.1.alive = pid > 0 && ClaudeLive.isRunning(pid) }
@@ -170,9 +210,7 @@ public final class LogScanner: @unchecked Sendable {
         let live = Dictionary(liveFiles.values.map { ($0.0, $0.1) }, uniquingKeysWith: { a, b in a.alive ? a : b })
         execAlive = Set(runs.filter { ClaudeLive.isRunning($0.pid) }.map(\.log))
         for path in Array(files.keys) {
-            if changed == nil || changed!.contains(where: { contains($0, path) || contains($0, files[path]?.physicalPath ?? path) }) || files[path]?.inode == nil {
-                read(path, now: t)
-            }
+            if files[path]?.inode == nil { read(path, now: t) }
             if let f = files[path], f.log.vendor == .codex, !f.isExec {
                 files[path]?.log.parentCandidates = threadParents[f.log.id] ?? []
             }
@@ -240,6 +278,7 @@ public final class LogScanner: @unchecked Sendable {
             .map { Date(timeIntervalSince1970: $0.retainedAt + finishedRetention) }.min()
         let retained = Set(agents.map(\.id))
         files = files.filter { _, f in retained.contains(f.log.id) || f.modified > t - window }
+        physicalFiles = physicalFiles.mapValues { $0.filter { files[$0] != nil } }.filter { !$0.value.isEmpty }
         return agents
     }
 
@@ -252,7 +291,7 @@ public final class LogScanner: @unchecked Sendable {
                 .subtracting(known).subtracting(searched)
             if missing.isEmpty { return }
             searched.formUnion(missing)
-            for file in codexDirectories.values.flatMap({ $0.1 }) where file.pathExtension == "jsonl" && files[file.path] == nil {
+            for file in listings.values.flatMap({ $0.1 }) where contains(codexRoot.path, file.path) && file.pathExtension == "jsonl" && files[file.path] == nil {
                 guard missing.contains(where: { file.lastPathComponent.hasSuffix("-\($0).jsonl") }) else { continue }
                 track(codex: file)
                 read(file.path, now: now)
@@ -262,64 +301,105 @@ public final class LogScanner: @unchecked Sendable {
 
     // MARK: discovery
 
-    private func discover(now: Double, window: Double) {
-        let fresh = now - window
-        discoverProcesses()
-        for project in children(claudeRoot) {
-            let items = children(project)
-            let dates = Dictionary(uniqueKeysWithValues: items.filter { $0.pathExtension == "jsonl" }.map {
-                ($0.lastPathComponent, mtime($0))
-            })
-            for item in items {
-                if item.pathExtension == "jsonl" {
-                    if files[item.path] == nil, (dates[item.lastPathComponent] ?? 0) > fresh { track(claude: item, parent: nil) }
-                } else if (dates[item.lastPathComponent + ".jsonl"] ?? 0) > now - 86_400 {
-                    for sub in subagentLogs(in: item) where files[sub.path] == nil && mtime(sub) > fresh {
-                        let parent = project.appendingPathComponent(item.lastPathComponent + ".jsonl")
-                        if files[parent.path] == nil { track(claude: parent, parent: nil) }
-                        track(claude: sub, parent: item.lastPathComponent)
-                    }
-                }
-            }
-        }
+    /// Directory notifications describe structure. Appends are handled by exact file events;
+    /// reconciliation checks file metadata even when the directory stamp has not changed.
+    private func discoverIndexed(paths: Set<String>, now: Double, window: Double, reconcile: Bool, sweep: Bool = false) -> Set<String> {
+        var dirty: Set<String> = []
         var visited: Set<String> = []
-        func directories(_ dir: URL, digits: Int) -> [URL] {
-            visited.insert(dir.path)
-            return codexChildren(dir, now: now).filter {
-                $0.lastPathComponent.count == digits && $0.lastPathComponent.allSatisfy(\.isNumber)
-            }.sorted { $0.lastPathComponent > $1.lastPathComponent }
+        func remove(_ path: String) {
+            for key in files.keys.filter({ contains(path, $0) }) { files.removeValue(forKey: key) }
+            for key in metadata.keys.filter({ contains(path, $0) }) { metadata.removeValue(forKey: key) }
+            for key in listings.keys.filter({ contains(path, $0) }) { listings.removeValue(forKey: key) }
         }
-        for year in directories(codexRoot, digits: 4) {
-            for month in directories(year, digits: 2) {
-                for day in directories(month, digits: 2) {
-                    visited.insert(day.path)
-                    let previous = codexDirectories[day.path]
-                    let items = codexChildren(day, now: now)
-                    let changed = previous?.0 != codexDirectories[day.path]?.0 || previous?.1 != items
-                    let date = day.lastPathComponent
-                    let monthPath = day.deletingLastPathComponent()
-                    let key = monthPath.deletingLastPathComponent().lastPathComponent + "/" + monthPath.lastPathComponent + "/" + date
-                    let calendar = Calendar.current
-                    let current = Date(timeIntervalSince1970: now)
-                    let recentDays = [current, calendar.date(byAdding: .day, value: -1, to: current)!].map {
-                        let c = calendar.dateComponents([.year, .month, .day], from: $0)
-                        return String(format: "%04d/%02d/%02d", c.year!, c.month!, c.day!)
+        func visit(_ url: URL) {
+            let path = url.path
+            guard visited.insert(path).inserted else { return }
+            guard let stamp = fileStamp(path) else { remove(path); return }
+            if stamp.directory {
+                guard sessionDirectory(url) else { return }
+                let previous = listings[path]
+                let relist = reconcile || previous?.0 != stamp
+                let items: [URL]
+                if relist {
+                    didList?(path)
+                    guard let found = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else { return }
+                    items = found
+                    listings[path] = (stamp, items)
+                    let present = Set(items.map(\.path))
+                    for old in previous?.1 ?? [] where !present.contains(old.path) { remove(old.path) }
+                } else { items = previous?.1 ?? [] }
+                if !relist, !reconcile, !sweep { return }
+                for child in items {
+                    // Known files require no metadata work for a directory-only event.
+                    if !reconcile, metadata[child.path] != nil { continue }
+                    if !reconcile, !relist, listings[child.path] == nil { continue }
+                    visit(child)
+                }
+                return
+            }
+            guard url.pathExtension == "jsonl" else { return }
+            let previous = metadata.updateValue(stamp, forKey: path)
+            if files[path] == nil, stamp.mtime > now - window {
+                if contains(codexRoot.path, path) {
+                    let parts = Array(url.pathComponents.dropFirst(codexRoot.pathComponents.count))
+                    guard parts.count == 4, zip(parts.prefix(3), [4, 2, 2]).allSatisfy({ $0.0.count == $0.1 && $0.0.allSatisfy(\.isNumber) }) else { return }
+                    track(codex: url)
+                } else {
+                    let parts = Array(url.pathComponents.dropFirst(claudeRoot.pathComponents.count))
+                    if parts.count == 2 { track(claude: url, parent: nil) }
+                    else if parts.count >= 4, parts[2] == "subagents", url.lastPathComponent.hasPrefix("agent-") {
+                        let parent = claudeRoot.appendingPathComponent(parts[0]).appendingPathComponent(parts[1] + ".jsonl")
+                        if files[parent.path] == nil, fileStamp(parent.path) != nil {
+                            track(claude: parent, parent: nil)
+                            dirty.insert(parent.path)
+                        }
+                        track(claude: url, parent: parts[1])
                     }
-                    // Appends leave directory mtimes unchanged. Revisit cold folders within 60s.
-                    if let cached = codexDays[day.path], !changed, !recentDays.contains(key),
-                       cached.newest <= fresh, now - cached.checked < 55 { continue }
-                    var newest: Double = 0
-                    for file in items where file.pathExtension == "jsonl" {
-                        let modified = mtime(file.path)
-                        newest = max(newest, modified)
-                        if modified > fresh, files[file.path] == nil { track(codex: file) }
-                    }
-                    codexDays[day.path] = (newest, now)
                 }
             }
+            if files[path] != nil, previous != stamp || files[path]?.observed != stamp { dirty.insert(path) }
         }
-        codexDirectories = codexDirectories.filter { visited.contains($0.key) }
-        codexDays = codexDays.filter { visited.contains($0.key) }
+        for path in paths.sorted() {
+            dirty.formUnion(physicalFiles[path] ?? [])
+            if contains(path, claudeRoot.path) { visit(claudeRoot) }
+            if contains(path, codexRoot.path) { visit(codexRoot) }
+            if contains(claudeRoot.path, path) || contains(codexRoot.path, path) {
+                visit(URL(fileURLWithPath: path))
+            } else if files[path]?.isExec == true { dirty.insert(path) }
+        }
+        return dirty
+    }
+
+    private func sessionDirectory(_ url: URL) -> Bool {
+        if contains(codexRoot.path, url.path) {
+            let parts = Array(url.pathComponents.dropFirst(codexRoot.pathComponents.count))
+            return parts.count <= 3 && zip(parts, [4, 2, 2]).allSatisfy {
+                $0.0.count == $0.1 && $0.0.allSatisfy(\.isNumber)
+            }
+        }
+        let parts = Array(url.pathComponents.dropFirst(claudeRoot.pathComponents.count))
+        if parts.count <= 2 { return true }
+        guard parts[2] == "subagents" else { return false }
+        return parts.count == 3 || ((parts.count == 4 || parts.count == 5) && parts[3] == "workflows")
+    }
+
+    private func configurationChanged() -> Bool {
+        var stamps: [String: FileStamp] = [:]
+        for entry in rootEntries {
+            if let stamp = fileStamp(entry.path, followLinks: false) { stamps[entry.path] = stamp }
+        }
+        guard stamps != rootEntryStamps else { return false }
+        rootEntryStamps = stamps
+        return true
+    }
+
+    private func fileStamp(_ path: String, followLinks: Bool = true) -> FileStamp? {
+        didStat?(path)
+        var info = stat()
+        let result = followLinks ? stat(path, &info) : lstat(path, &info)
+        guard result == 0 else { return nil }
+        return FileStamp(size: info.st_size, modified: info.st_mtimespec, changed: info.st_ctimespec,
+                         inode: info.st_ino, device: info.st_dev, directory: info.st_mode & S_IFMT == S_IFDIR)
     }
 
     private func discoverProcesses() {
@@ -338,68 +418,34 @@ public final class LogScanner: @unchecked Sendable {
     }
 
     private func refreshLive(_ file: URL) {
+        guard let stamp = fileStamp(file.path) else {
+            liveFiles.removeValue(forKey: file.path)
+            liveMetadata.removeValue(forKey: file.path)
+            return
+        }
+        guard liveMetadata[file.path] != stamp else { return }
         liveFiles[file.path] = ClaudeLive.readFile(file)
+        liveMetadata[file.path] = stamp
     }
 
-    /// An event for a directory visits only that subtree; a file event never lists its siblings.
-    private func discoverChanged(_ paths: Set<String>, now: Double, window: Double) {
-        func visit(_ url: URL) {
-            let path = url.path
-            guard contains(claudeRoot.path, path) || contains(codexRoot.path, path) else { return }
-            if url.pathExtension == "jsonl" {
-                guard files[path] == nil, mtime(path) > now - window else { return }
-                if contains(codexRoot.path, path) { track(codex: url) }
-                else {
-                    let parts = Array(url.pathComponents.dropFirst(claudeRoot.pathComponents.count))
-                    if parts.count == 2 { track(claude: url, parent: nil) }
-                    else if parts.count >= 4, parts[2] == "subagents", url.lastPathComponent.hasPrefix("agent-") {
-                        track(claude: url, parent: parts[1])
-                    }
-                }
-            } else {
-                var directory: ObjCBool = false
-                if fm.fileExists(atPath: path, isDirectory: &directory), directory.boolValue {
-                    for child in children(url) { visit(child) }
-                }
-            }
+    private func refreshLiveDirectory(reconcile: Bool) {
+        let path = claudeSessions.path
+        guard let stamp = fileStamp(path) else {
+            liveFiles.removeAll(); liveMetadata.removeAll(); listings.removeValue(forKey: path)
+            return
         }
-        for path in paths {
-            if contains(path, claudeRoot.path) { visit(claudeRoot) }
-            else if contains(path, codexRoot.path) { visit(codexRoot) }
-            else { visit(URL(fileURLWithPath: path)) }
+        let items: [URL]
+        if !reconcile, let cached = listings[path], cached.0 == stamp { items = cached.1 }
+        else {
+            didList?(path)
+            guard let found = try? fm.contentsOfDirectory(at: claudeSessions, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else { return }
+            items = found
+            listings[path] = (stamp, items)
         }
-    }
-
-    private func codexChildren(_ dir: URL, now: Double) -> [URL] {
-        didStat?(dir.path)
-        guard let attributes = try? fm.attributesOfItem(atPath: dir.path),
-              let modified = attributes[.modificationDate] as? Date,
-              let inode = attributes[.systemFileNumber] as? UInt64,
-              let device = attributes[.systemNumber] as? UInt64 else {
-            codexDirectories.removeValue(forKey: dir.path)
-            return []
-        }
-        let stamp = DirectoryStamp(modified: modified, inode: inode, device: device)
-        let c = Calendar.current.dateComponents([.year, .month, .day], from: Date(timeIntervalSince1970: now))
-        let today = String(format: "/%04d/%02d/%02d", c.year!, c.month!, c.day!)
-        if !dir.path.hasSuffix(today), modified.timeIntervalSince1970 < now - 2,
-           let cached = codexDirectories[dir.path], cached.0 == stamp { return cached.1 }
-        didList?(dir.path)
-        guard let items = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else {
-            codexDirectories.removeValue(forKey: dir.path)
-            return []
-        }
-        codexDirectories[dir.path] = (stamp, items)
-        return items
-    }
-
-    private func subagentLogs(in session: URL) -> [URL] {
-        let dir = session.appendingPathComponent("subagents")
-        let direct = children(dir).filter { $0.lastPathComponent.hasPrefix("agent-") && $0.pathExtension == "jsonl" }
-        let workflows = children(dir.appendingPathComponent("workflows")).flatMap { run in
-            children(run).filter { $0.lastPathComponent.hasPrefix("agent-") && $0.pathExtension == "jsonl" }
-        }
-        return direct + workflows
+        let present = Set(items.map(\.path))
+        liveFiles = liveFiles.filter { present.contains($0.key) }
+        liveMetadata = liveMetadata.filter { present.contains($0.key) }
+        for file in items where file.pathExtension == "json" { refreshLive(file) }
     }
 
     private func track(claude file: URL, parent: String?) {
@@ -415,6 +461,7 @@ public final class LogScanner: @unchecked Sendable {
         }
         log.path = file.path
         files[file.path] = Tracked(log: log, offset: startOffset(file.path), isSubagent: parent != nil)
+        physicalFiles[files[file.path]!.physicalPath, default: []].insert(file.path)
     }
 
     private func track(codex file: URL) {
@@ -426,6 +473,7 @@ public final class LogScanner: @unchecked Sendable {
             CodexLine.apply(r, to: &log)
         }
         files[file.path] = Tracked(log: log, offset: startOffset(file.path), isSubagent: false, initial: initial)
+        physicalFiles[files[file.path]!.physicalPath, default: []].insert(file.path)
     }
 
     private func track(exec run: ExecRun) {
@@ -446,6 +494,7 @@ public final class LogScanner: @unchecked Sendable {
             log.id = id
         }
         files[run.log] = Tracked(log: log, offset: startOffset(run.log), isSubagent: false, isExec: true)
+        physicalFiles[files[run.log]!.physicalPath, default: []].insert(run.log)
     }
 
     private func parents(of pid: Int32) -> [String] {
@@ -455,7 +504,13 @@ public final class LogScanner: @unchecked Sendable {
     // MARK: reading
 
     private func read(_ path: String, now: Double) {
-        guard var f = files[path], let h = FileHandle(forReadingAtPath: path) else { return }
+        guard var f = files[path] else { return }
+        guard let stamp = fileStamp(path) else { files.removeValue(forKey: path); metadata.removeValue(forKey: path); return }
+        // Avoid opening unchanged logs, including retained ancestors and exec streams.
+        if f.inode == stamp.inode, f.device == stamp.device,
+           f.observed == stamp { return }
+        didOpen?(path)
+        guard let h = FileHandle(forReadingAtPath: path) else { return }
         defer { try? h.close() }
         var info = stat()
         didStat?(path)
@@ -473,6 +528,7 @@ public final class LogScanner: @unchecked Sendable {
         f.modified = Double(info.st_mtimespec.tv_sec) + Double(info.st_mtimespec.tv_nsec) / 1_000_000_000
         f.inode = info.st_ino
         f.device = info.st_dev
+        f.observed = stamp
         files[path] = f
         guard (try? h.seek(toOffset: f.offset)) != nil, let data = try? h.read(upToCount: Int(size - f.offset)), !data.isEmpty else { return }
         didRead?(data.count)
@@ -504,6 +560,7 @@ public final class LogScanner: @unchecked Sendable {
     }
 
     private func firstLine(_ path: String) -> Data? {
+        didOpen?(path)
         guard let h = FileHandle(forReadingAtPath: path) else { return nil }
         defer { try? h.close() }
         return firstLine(h, chunkBytes: 64 << 10)
@@ -521,18 +578,4 @@ public final class LogScanner: @unchecked Sendable {
         return buf.isEmpty ? nil : buf
     }
 
-    private func children(_ dir: URL) -> [URL] {
-        (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles])) ?? []
-    }
-
-    private func mtime(_ path: String) -> Double {
-        didStat?(path)
-        var info = stat()
-        guard stat(path, &info) == 0 else { return 0 }
-        return Double(info.st_mtimespec.tv_sec) + Double(info.st_mtimespec.tv_nsec) / 1_000_000_000
-    }
-
-    private func mtime(_ url: URL) -> Double {
-        (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate?.timeIntervalSince1970 ?? 0
-    }
 }
