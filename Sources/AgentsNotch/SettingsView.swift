@@ -82,6 +82,7 @@ struct SettingsView: View {
                     case .sounds: SettingsSounds(settings: settings)
                     case .vault: SettingsPrompts(settings: settings, prompts: prompts, skills: skills)
                     case .limits: SettingsLimits(settings: settings)
+                    case .house: SettingsHouse(settings: settings)
                     case .connection: SettingsConnection(settings: settings)
                     case .general: SettingsGeneral(settings: settings)
                     }

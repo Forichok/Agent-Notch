@@ -9,12 +9,25 @@ import SwiftUI
                 let paused = Array(SurfaceSchedule(interval: interval, active: false).entries(from: start, mode: mode).prefix(10))
                 guard paused == [start] else { print("FAIL hidden surface keeps ticking"); exit(1) }
                 let resumed = Array(SurfaceSchedule(interval: interval, active: true).entries(from: start, mode: mode).prefix(3))
-                let expected = [start, start.addingTimeInterval(interval), start.addingTimeInterval(interval * 2)]
+                // The mount draws at once, then ticks land on shared multiples of the interval.
+                let boundary = ((start.timeIntervalSinceReferenceDate / interval).rounded(.down) + 1) * interval
+                let expected = [start, Date(timeIntervalSinceReferenceDate: boundary), Date(timeIntervalSinceReferenceDate: boundary + interval)]
                 guard resumed.count == expected.count, zip(resumed, expected).allSatisfy({ abs($0.timeIntervalSince($1)) < 0.000001 }) else { print("FAIL visible cadence changed: \(interval)"); exit(1) }
             }
         }
+        checkAlignedPhase()
         checkMountedReactivation()
         print("OK hidden schedules stop and mounted timelines resume without resetting state")
+    }
+    /// Marks mounted at different moments must tick together, or each one wakes the window on its own.
+    static func checkAlignedPhase() {
+        for interval in [0.12, 0.25, 0.5, 1] {
+            let a = Array(SurfaceSchedule(interval: interval, active: true).entries(from: Date(timeIntervalSinceReferenceDate: 1_000.013), mode: .normal).prefix(4))
+            let b = Array(SurfaceSchedule(interval: interval, active: true).entries(from: Date(timeIntervalSinceReferenceDate: 1_000.071), mode: .normal).prefix(4))
+            guard a.count == 4, b.count == 4, a[2] == b[2], a[3] == b[3], abs(a[3].timeIntervalSince(a[2]) - interval) < 0.000001 else {
+                print("FAIL timelines mounted apart tick on their own phase: \(interval)"); exit(1)
+            }
+        }
     }
     @MainActor static func checkMountedReactivation() {
         let app = NSApplication.shared

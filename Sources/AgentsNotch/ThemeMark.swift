@@ -18,7 +18,7 @@ struct ThemeMark: View {
     var body: some View {
         Group {
             if animates {
-                SurfaceTimeline(every: 0.12) { date in
+                SurfaceTimeline(every: interval) { date in
                     let t = date.timeIntervalSinceReferenceDate
                     mark(t: t)
                         .opacity(state == .waiting && blinks ? (Int(t * 2) % 2 == 0 ? 1 : 0.35) : 1)
@@ -48,6 +48,8 @@ struct ThemeMark: View {
         case .error, .done: false
         }
     }
+    /// A blink or a two-frame glyph changes twice a second; only marks in motion need the fast clock.
+    private var interval: TimeInterval { state == .waiting && theme.id != .midnight ? 0.5 : 0.12 }
     private var role: InkRole {
         switch state { case .working: .working; case .waiting: .waiting; case .error: .error; case .done: .dim }
     }

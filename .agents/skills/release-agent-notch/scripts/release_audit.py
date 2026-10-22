@@ -52,12 +52,31 @@ def check_cask(text, version, checksum):
             "cask version, checksum or download URL does not match")
 
 
+def saver_name(version):
+    return "AgentNotchHouse-" + version + ".saver.zip"
+
+
+def audit_saver(archive, version, revision):
+    """The screen saver ships beside the app and must come from the same source and version."""
+    with zipfile.ZipFile(archive) as zipped:
+        plists = [name for name in zipped.namelist()
+                  if name.endswith(".saver/Contents/Info.plist") and len(name.split("/")) == 3]
+        require(plists == ["Agent Notch House.saver/Contents/Info.plist"], "unexpected screen saver layout")
+        require(zipped.getinfo(plists[0]).file_size < 1_048_576, "oversized screen saver metadata")
+        info = plistlib.loads(zipped.read(plists[0]))
+    expected = dict(CFBundleIdentifier="com.forichok.agents-notch.house-saver", CFBundleVersion=version,
+                    CFBundleShortVersionString=version, AgentNotchSourceRevision=revision,
+                    NSPrincipalClass="AgentNotchHouseView")
+    require(all(info.get(key) == value for key, value in expected.items()),
+            "screen saver identity, version or source does not match")
+
+
 def audit_metadata(directory, version, revision, trusted_key, verifier, local=False):
     require(re.fullmatch(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)", version),
             "version must be stable X.Y.Z")
     require(re.fullmatch(r"[0-9a-f]{40}", revision), "revision must be a full commit SHA")
     require(len(base64.b64decode(trusted_key, validate=True)) == 32, "invalid pinned public key")
-    names = ["AgentNotch-" + version + suffix for suffix in [".zip", ".dmg"]]
+    names = ["AgentNotch-" + version + suffix for suffix in [".zip", ".dmg"]] + [saver_name(version)]
     required = names + ["SHA256SUMS.txt", "appcast.xml"]
     if local:
         required += ["notes.md", "agent-notch.rb"]
@@ -69,7 +88,8 @@ def audit_metadata(directory, version, revision, trusted_key, verifier, local=Fa
         match = re.fullmatch(r"([0-9a-f]{64}) [ *](.+)", line)
         require(match is not None and match.group(2) not in declared, "invalid or duplicate checksum entry")
         declared[match.group(2)] = match.group(1)
-    require(actual == declared, "ZIP/DMG checksums do not match")
+    require(actual == declared, "ZIP/DMG/screen saver checksums do not match")
+    audit_saver(directory / saver_name(version), version, revision)
     archive = directory / names[0]
     with zipfile.ZipFile(archive) as zipped:
         plists = [name for name in zipped.namelist()
@@ -157,7 +177,7 @@ def main():
     parser.add_argument("version")
     parser.add_argument("--revision", required=True, help="expected full source commit SHA")
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--local-dist", type=Path, help="validate all six prepared local outputs")
+    mode.add_argument("--local-dist", type=Path, help="validate all seven prepared local outputs")
     mode.add_argument("--output-dir", type=Path, help="download and validate public release files here")
     parser.add_argument("--check-tap", action="store_true", help="also check published default-branch cask")
     args = parser.parse_args()
@@ -169,7 +189,8 @@ def main():
     directory = (args.local_dist or args.output_dir).resolve()
     if args.output_dir is not None:
         directory.mkdir(parents=True, exist_ok=True)
-        for name in ["AgentNotch-" + args.version + ".zip", "AgentNotch-" + args.version + ".dmg", "SHA256SUMS.txt"]:
+        for name in ["AgentNotch-" + args.version + ".zip", "AgentNotch-" + args.version + ".dmg",
+                     saver_name(args.version), "SHA256SUMS.txt"]:
             download(PREFIX + "/v" + args.version + "/" + name, directory / name)
         download(FEED, directory / "appcast.xml")
     key = (ROOT / "packaging/updates-public-key.txt").read_text().strip()

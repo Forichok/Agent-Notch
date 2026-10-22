@@ -47,9 +47,12 @@ final class KeepAwakeModel: ObservableObject {
 
     func refresh() {
         guard !busy else { return }
-        enabled = try? system.read()
-        permissionInstalled = system.permissionInstalled
-        if !permissionInstalled { passwordless = nil }
+        // Publish only real changes: this runs every few seconds and each write redraws the views that watch it.
+        let read = try? system.read()
+        if enabled != read { enabled = read }
+        let installed = system.permissionInstalled
+        if permissionInstalled != installed { permissionInstalled = installed }
+        if !installed, passwordless != nil { passwordless = nil }
     }
 
     func setEnabled(_ requested: Bool) async {

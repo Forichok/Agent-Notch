@@ -4,7 +4,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- Agents' house on the desktop: an optional animated pixel wallpaper where every project is a room and every agent walks around in it. Click or pinch to fly to a room, Esc goes back to the overview. Off by default; turn it on in Settings → Desktop house. Nothing is drawn while the desktop is covered, and fewer frames are drawn on battery and in Low Power Mode.
+- Agents' house as a screen saver, Agent Notch House: the same live house while the Mac is idle, and on the lock screen with "Require password immediately". Install it from Settings → Desktop house or by double-clicking the `.saver`; releases ship it as `AgentNotchHouse-<version>.saver.zip` and inside the DMG.
+- In the agents' house a finished agent takes a real shower (about 20 seconds behind fogged glass, then a towel) instead of turning around at the door. Codex agents are a blue cloud-headed robot, or your own Codex pet when `~/.codex/pets` has one. A dog lives in a kennel in the wider yard: it sleeps there at night, walks a finished agent to the shower, fetches a ball and barks at fires; the cat's house is now on the roof. Project rooms get beanbags, armchairs, a sofa and floor cushions where agents work on a laptop when the desks are taken. The roof tanks say which limit window they show (5 hours or a week), Codex's is named CODEX, and hovering a tank lists every window with its reset time.
+- In the agents' house a project's room no longer stays forever. Once none of its agents has been in the list for 15 minutes, its island flies off and the others slide into the freed places. The next agent of that project brings the room back with the same theme and growth.
 
 ## [0.6.0] - 2026-10-16
 

@@ -157,9 +157,11 @@ final class Store: ObservableObject {
                     if next.sorted(by: { $0.id < $1.id }) != self.agents.sorted(by: { $0.id < $1.id }) { self.agents = next }
                 }
                 // Age failed requests even when the scanner has no changed snapshot.
-                for ticket in self.hooks.expire(agents: self.agents, now: Date().timeIntervalSince1970) {
-                    self.deliverySounds[ticket] = nil
-                }
+                // Expire on a copy: writing `hooks` back unchanged would redraw every surface on each scan.
+                var hooks = self.hooks
+                let stale = hooks.expire(agents: self.agents, now: Date().timeIntervalSince1970)
+                if !stale.isEmpty { self.hooks = hooks }
+                for ticket in stale { self.deliverySounds[ticket] = nil }
                 if let next {
                     self.finisher.check(self.settings.listFilter.apply(self.hooks.apply(to: next, now: Date().timeIntervalSince1970, finishedRetention: retention, project: self.names.name(for:))))
                     for event in Set(self.soundWatcher.update(self.shown)) { self.play(event) }

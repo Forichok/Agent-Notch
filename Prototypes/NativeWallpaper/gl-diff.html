@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- Checks room/index.html?gl=1 against the 2D canvas, frame by frame: the page is loaded with its screen context
+     replaced by a tee that sends every call both to the WebGL context and to a hidden 2D canvas, and after each frame
+     the two pictures are compared. Serve the repo root (python3 -m http.server) and open
+     /Prototypes/NativeWallpaper/gl-diff.html?<the page's own query, e.g. hour=7&weather=rain>.
+     window.DIFF holds the running numbers; the worst frame is shown under the page. -->
+<meta charset="utf-8">
+<style>body{margin:0;background:#222;color:#eee;font:12px ui-monospace,Menlo,monospace}iframe{border:0;width:100vw;height:70vh;display:block}
+#out{padding:6px}canvas{image-rendering:pixelated;width:48vw;margin:0 .5vw}</style>
+<iframe id="f"></iframe><div id="out">loading…</div><canvas id="a"></canvas><canvas id="b"></canvas>
+<script>
+const TEE = `
+function teeContext(gl, two) {
+  const pair = (a, b) => ({ a, b, addColorStop(o, c) { a.addColorStop(o, c); b.addColorStop(o, c); } });
+  let fresh = true; // the first call of a frame sizes the shadow like the screen
+  const begin = () => { if (!fresh) return; fresh = false; const c = gl.canvas, s = two.canvas;
+    if (s.width !== c.width || s.height !== c.height) { s.width = c.width; s.height = c.height; } };
+  const ctx = { canvas: gl.canvas, two };
+  for (const k of ['fillStyle', 'globalAlpha', 'globalCompositeOperation', 'imageSmoothingEnabled', 'imageSmoothingQuality'])
+    Object.defineProperty(ctx, k, { get: () => { const v = gl[k]; return v && v.__pair ? v.__pair : v; },
+      set: v => { if (v && v.a) { v.a.__pair = v; gl[k] = v.a; two[k] = v.b; } else { gl[k] = v; two[k] = v; } } });
+  for (const k of ['save', 'restore', 'beginPath', 'moveTo', 'lineTo', 'closePath', 'arc', 'clip', 'fill', 'fillRect', 'clearRect', 'drawImage'])
+    ctx[k] = (...a) => { begin(); gl[k](...a); two[k](...a); };
+  ctx.createLinearGradient = (...a) => pair(gl.createLinearGradient(...a), two.createLinearGradient(...a));
+  ctx.createRadialGradient = (...a) => pair(gl.createRadialGradient(...a), two.createRadialGradient(...a));
+  ctx.flush = () => { gl.flush(); window.__check(); fresh = true; };
+  return ctx;
+}
+window.__check = () => {
+  const c = document.getElementById('c'), g = c.getContext('webgl2'), w = c.width, h = c.height;
+  if (window.__shadow.width !== w || window.__shadow.height !== h) return;
+  const A = new Uint8Array(w * h * 4); g.readPixels(0, 0, w, h, g.RGBA, g.UNSIGNED_BYTE, A);
+  const B = window.__shadow.getContext('2d').getImageData(0, 0, w, h).data;
+  let bad = 0, worst = 0, bx0 = 1e9, by0 = 1e9, bx1 = -1, by1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = ((h - 1 - y) * w + x) * 4, j = (y * w + x) * 4, aa = A[i + 3] / 255 || 1;
+    let d = Math.abs(A[i + 3] - B[j + 3]);
+    for (let k = 0; k < 3; k++) d = Math.max(d, Math.abs(A[i + k] / aa - B[j + k]));
+    if (d > 3) { bad++; bx0 = Math.min(bx0, x); by0 = Math.min(by0, y); bx1 = Math.max(bx1, x); by1 = Math.max(by1, y); } if (d > worst) worst = d;
+  }
+  parent.__report(bad / (w * h), worst, w, h, A, B, [bx0, by0, bx1, by1]);
+};`;
+const D = window.DIFF = { seen: 0, frames: 0, worstShare: 0, sumShare: 0, maxDelta: 0 };
+window.__report = (share, worst, w, h, A, B, box) => {
+  if (++D.seen <= 5) return; // the first frames run while the page still lays itself out
+  D.frames++; D.sumShare += share; D.maxDelta = Math.max(D.maxDelta, worst);
+  if (share >= D.worstShare) { D.worstShare = share;
+    const a = document.getElementById('a'), b = document.getElementById('b'); a.width = b.width = w; a.height = b.height = h;
+    const ia = new ImageData(w, h); for (let y = 0; y < h; y++) ia.data.set(A.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4);
+    a.getContext('2d').putImageData(ia, 0, 0); b.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(B), w, h), 0, 0);
+    // the worst frame's differing pixels: their spots (DIFF.spots, up to 40 crops) as [x, y, webglRGBA, 2dRGBA]
+    D.box = box; D.spots = [];
+    for (let y = 0; y < h && D.spots.length < 40; y++) for (let x = 0; x < w && D.spots.length < 40; x++) {
+      const i = (y * w + x) * 4, j = ((h - 1 - y) * w + x) * 4; let d = 0;
+      for (let k = 0; k < 4; k++) d = Math.max(d, Math.abs(ia.data[i + k] - B[i + k]));
+      if (d > 3 && !D.spots.some(p => Math.abs(p[0] - x) < 6 && Math.abs(p[1] - y) < 6)) D.spots.push([x, y, [...ia.data.slice(i, i + 4)].join(), [...B.slice(i, i + 4)].join()]);
+    } }
+  document.getElementById('out').textContent = `frames ${D.frames} · pixels off by >3: mean ${(D.sumShare / D.frames * 100).toFixed(3)}%, worst frame ${(D.worstShare * 100).toFixed(3)}% · largest channel delta ${D.maxDelta.toFixed(0)} · left: WebGL, right: 2D (worst frame)`;
+};
+fetch('/room/index.html', { cache: 'no-store' }).then(r => r.text()).then(src => {
+  const line = "const cv = document.getElementById('c'), main = (Q.get('gl') === '1' && glContext(cv)) || cv.getContext('2d');";
+  if (!src.includes(line)) { document.getElementById('out').textContent = 'the screen-context line in room/index.html changed'; return; }
+  src = src.replace(line, "const cv = document.getElementById('c'); window.__shadow = document.createElement('canvas');" +
+    "const main = teeContext(glContext(cv), window.__shadow.getContext('2d'));")
+    .replace("const Q = new URLSearchParams(location.search);", "const Q = new URLSearchParams(" + JSON.stringify(location.search) + ");")
+    .replace("<script>\n'use strict';", "<base href=\"/room/\"><script>\n'use strict';" + TEE);
+  const f = document.getElementById('f');
+  f.srcdoc = src;
+});
+</script>

@@ -64,6 +64,8 @@ if CommandLine.arguments.count == 2 {
             SUEnableAutomaticChecks=False, SUAllowsAutomaticUpdates=False,
             SUAutomaticallyUpdate=False, SUVerifyUpdateBeforeExtraction=True,
             LSMinimumSystemVersion="14.0")
+        self.saver = dict(CFBundleIdentifier="com.forichok.agents-notch.house-saver", CFBundleVersion=VERSION,
+            CFBundleShortVersionString=VERSION, AgentNotchSourceRevision=REVISION, NSPrincipalClass="AgentNotchHouseView")
         self.fixture()
 
     def fixture(self):
@@ -73,6 +75,9 @@ if CommandLine.arguments.count == 2 {
             zipped.writestr("Agent Notch.app/Contents/MacOS/AgentsNotch", b"test payload")
         signature = subprocess.check_output([str(self.signer), str(self.seed), str(archive)], text=True).strip()
         (self.directory / ("AgentNotch-" + VERSION + ".dmg")).write_bytes(b"test dmg")
+        with zipfile.ZipFile(self.directory / audit.saver_name(VERSION), "w") as zipped:
+            zipped.writestr("Agent Notch House.saver/Contents/Info.plist", plistlib.dumps(self.saver))
+            zipped.writestr("Agent Notch House.saver/Contents/MacOS/Agent Notch House", b"test saver")
         self.checksums()
         rss = ET.Element("rss")
         item = ET.SubElement(ET.SubElement(rss, "channel"), "item")
@@ -90,8 +95,7 @@ if CommandLine.arguments.count == 2 {
 
     def checksums(self):
         lines = []
-        for extension in ["zip", "dmg"]:
-            name = "AgentNotch-" + VERSION + "." + extension
+        for name in ["AgentNotch-" + VERSION + ".zip", "AgentNotch-" + VERSION + ".dmg", audit.saver_name(VERSION)]:
             lines.append(hashlib.sha256((self.directory / name).read_bytes()).hexdigest() + "  " + name)
         (self.directory / "SHA256SUMS.txt").write_text("\n".join(lines) + "\n")
 
@@ -111,6 +115,19 @@ if CommandLine.arguments.count == 2 {
             with self.subTest(key=key), self.assertRaises(ValueError):
                 self.check()
             self.info[key] = original
+
+    def test_screen_saver_from_other_source_or_missing_is_rejected(self):
+        for key, value in [("AgentNotchSourceRevision", "b" * 40), ("CFBundleVersion", "0.4.9")]:
+            original = self.saver[key]
+            self.saver[key] = value
+            self.fixture()
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                self.check()
+            self.saver[key] = original
+        self.fixture()
+        (self.directory / audit.saver_name(VERSION)).unlink()
+        with self.assertRaises(ValueError):
+            self.check()
 
     def test_tampering_is_rejected_even_with_updated_checksums(self):
         archive = self.directory / ("AgentNotch-" + VERSION + ".zip")

@@ -186,6 +186,7 @@ final class NotchController {
         item(Loc.t("Answer requests from the notch", "Решать запросы из чёлки"), #selector(AppActions.toggleAnswer), on: AppSettings.shared.answerFromNotch)
         item(Loc.t("Event sounds", "Звуки событий"), #selector(AppActions.toggleSounds), on: AppSettings.shared.sounds)
         item(ToastText.menu, #selector(AppActions.toggleFinishToast), on: AppSettings.shared.finishToast)
+        item(Loc.t("Agents' house on the desktop", "Дом агентов на рабочем столе"), #selector(AppActions.toggleRoom), on: AppSettings.shared.roomWallpaper)
         menu.addItem(.separator())
         item(Loc.t("Open at login", "Открывать при входе в систему"), #selector(AppActions.toggleLogin), on: SMAppService.mainApp.status == .enabled)
         item(AXIsProcessTrusted() ? Loc.t("Shrinking for menus is on", "Сжатие по меню включено")
@@ -261,6 +262,8 @@ final class AppActions: NSObject {
 
     @objc func toggleAnswer() { AppSettings.shared.answerFromNotch.toggle() }
     @objc func toggleSounds() { AppSettings.shared.sounds.toggle() }
+
+    @objc func toggleRoom() { AppSettings.shared.roomWallpaper.toggle() }
 
     @objc func toggleLogin() {
         let s = SMAppService.mainApp
