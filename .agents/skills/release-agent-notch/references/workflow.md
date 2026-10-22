@@ -30,7 +30,7 @@
 
 Объясни запрос до подтверждения: это подпись архива издателя. Пользователь подтверждает системный диалог и вводит пароль только в нём. Если управление SecurityAgent заблокировано инструментом, передай диалог владельцу; не открывай его обходным способом. При отказе останови подпись/публикацию и не повторяй запрос без нового разрешения.
 
-Успешная подготовка с exit 0 создаёт в dist/ ZIP, DMG, SHA256SUMS.txt, appcast.xml, notes.md и agent-notch.rb. Файлы с подходящими именами от прежней попытки не являются доказательством: важны исходный SHA в ZIP, версия, подпись и суммы.
+Успешная подготовка с exit 0 создаёт в dist/ ZIP, DMG, ZIP заставки (AgentNotchHouse-$version.saver.zip), SHA256SUMS.txt, appcast.xml, notes.md и agent-notch.rb. Файлы с подходящими именами от прежней попытки не являются доказательством: важны исходный SHA в ZIP, версия, подпись и суммы.
 
 ### Возобновление только подписи
 
@@ -54,7 +54,7 @@
 
     python3 .agents/skills/release-agent-notch/scripts/release_audit.py "$version" --revision "$revision" --local-dist dist
 
-Аудит проверяет все шесть выходов, исходник в ZIP, режим только по кнопке, закреплённый ключ, подпись CryptoKit, метаданные и описание ленты, cask и суммы. Монтирует DMG read-only, сравнивает весь bundle с подписанным ZIP и проверяет codesign обоих; приложение при этом не запускается. Он не обращается к Keychain и ничего не публикует. Независимое ревью должно осмотреть финальный комплект; старое ревью другого ZIP не подходит.
+Аудит проверяет все семь выходов, исходник в ZIP и в заставке, режим только по кнопке, закреплённый ключ, подпись CryptoKit, метаданные и описание ленты, cask и суммы. Монтирует DMG read-only, сравнивает весь bundle с подписанным ZIP и проверяет codesign обоих; приложение при этом не запускается. Он не обращается к Keychain и ничего не публикует. Независимое ревью должно осмотреть финальный комплект; старое ревью другого ZIP не подходит.
 
 ## 3. Черновик, тег и публикация
 
@@ -74,9 +74,9 @@
 Для существующего черновика обнови target/notes и явно сохрани draft:true. Заменять известные файлы можно только после проверки, что релиз всё ещё черновик:
 
     gh release edit "v$version" --repo Forichok/Agent-Notch --draft=true --target "$revision" --title "Agent Notch $version" --notes-file dist/notes.md
-    gh release upload "v$version" --repo Forichok/Agent-Notch --clobber "dist/AgentNotch-$version.zip" "dist/AgentNotch-$version.dmg" dist/SHA256SUMS.txt dist/appcast.xml
+    gh release upload "v$version" --repo Forichok/Agent-Notch --clobber "dist/AgentNotch-$version.zip" "dist/AgentNotch-$version.dmg" "dist/AgentNotchHouse-$version.saver.zip" dist/SHA256SUMS.txt dist/appcast.xml
 
-Сверь загруженные SHA256 digest с локальными файлами; если API не даёт digest, скачай assets черновика в отдельный временный каталог и сравни. Устаревшие дополнительные assets требуют явного решения, а не массового удаления. Проверь target/tag и наличие всех четырёх файлов перед публикацией.
+Сверь загруженные SHA256 digest с локальными файлами; если API не даёт digest, скачай assets черновика в отдельный временный каталог и сравни. Устаревшие дополнительные assets требуют явного решения, а не массового удаления. Проверь target/tag и наличие всех пяти файлов перед публикацией.
 
     gh release edit "v$version" --repo Forichok/Agent-Notch --draft=false --prerelease=false --latest
 
@@ -87,7 +87,7 @@
     public_dir=$(mktemp -d)
     python3 .agents/skills/release-agent-notch/scripts/release_audit.py "$version" --revision "$revision" --output-dir "$public_dir"
 
-Скрипт без авторизации скачивает ZIP, DMG и суммы по URL версии, а appcast.xml — именно по production latest/download URL, который читает приложение. Проверяет pinned Ed25519, SHA, источник, версию и отсутствие автоматического режима. Он печатает JSON только после успеха. Запиши public_dir: это проверенные файлы для установки.
+Скрипт без авторизации скачивает ZIP, DMG, ZIP заставки и суммы по URL версии, а appcast.xml — именно по production latest/download URL, который читает приложение. Проверяет pinned Ed25519, SHA, источник, версию и отсутствие автоматического режима. Он печатает JSON только после успеха. Запиши public_dir: это проверенные файлы для установки.
 
 Проверка включает codesign и сравнение содержимого DMG с подписанным ZIP. При временной ошибке публичного HTTP разрешены до трёх повторных read-only проверок; не повторяй публикацию и не подменяй production feed тестовым. При устойчивом 404 выпуск ещё не проверен.
 

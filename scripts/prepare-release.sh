@@ -19,10 +19,10 @@ python3 scripts/release-notes.py "$version" > "$notes"
 ./scripts/package.sh "$version"
 cp "$notes" dist/notes.md
 ./scripts/appcast.sh "$version"
-for file in "dist/AgentNotch-$version.zip" "dist/AgentNotch-$version.dmg" dist/SHA256SUMS.txt dist/appcast.xml dist/notes.md; do
+for file in "dist/AgentNotch-$version.zip" "dist/AgentNotch-$version.dmg" "dist/AgentNotchHouse-$version.saver.zip" dist/SHA256SUMS.txt dist/appcast.xml dist/notes.md; do
   [ -s "$file" ] || { echo "missing release artifact: $file" >&2; exit 1; }
 done
 checksum_result=$(shasum -a 256 "dist/AgentNotch-$version.zip")
 checksum=${checksum_result%% *}
 sed -e "s/__VERSION__/$version/" -e "s/__SHA256__/$checksum/" packaging/agent-notch.rb > dist/agent-notch.rb
-printf 'Prepared %s in dist/: signed ZIP, DMG, checksums, appcast, notes and Homebrew cask. No tags or releases published.\n' "$version"
+printf 'Prepared %s in dist/: signed ZIP, DMG, screen saver ZIP, checksums, appcast, notes and Homebrew cask. No tags or releases published.\n' "$version"

@@ -23,7 +23,7 @@ class LocalReleaseChecks(unittest.TestCase):
         (self.root / ".gitignore").write_text("dist/\n")
         self.script("test.sh", "exit 0")
         # Compile/package/sign commands are the expensive subprocess boundary; preserve their artifacts and errors.
-        self.script("package.sh", "rm -rf dist; mkdir dist; printf hello > dist/AgentNotch-0.5.0.zip; printf dmg > dist/AgentNotch-0.5.0.dmg; printf checksums > dist/SHA256SUMS.txt")
+        self.script("package.sh", "rm -rf dist; mkdir dist; printf hello > dist/AgentNotch-0.5.0.zip; printf dmg > dist/AgentNotch-0.5.0.dmg; printf saver > dist/AgentNotchHouse-0.5.0.saver.zip; printf checksums > dist/SHA256SUMS.txt")
         self.script("appcast.sh", "test -s dist/notes.md; printf signed-feed > dist/appcast.xml")
         subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
         self.commit()

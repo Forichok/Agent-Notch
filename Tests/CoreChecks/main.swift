@@ -276,6 +276,7 @@ run("settingsVisibilityAndPass") { settings.visibilityAndPass() }
 // NOTCH-fix-usage
 let usageFix = UsageFixChecks()
 run("usageExpiredLimits") { try usageFix.expiredLimits() }
+run("claudeWeeklyReset") { try usageFix.claudeWeeklyReset() }
 run("usageOutputDoesNotExpandWindow") { try usageFix.outputDoesNotExpandWindow() }
 
 run("usageConfiguredThresholds") { usageFix.configuredThresholds() }
@@ -348,6 +349,9 @@ run("auditDeliveryResult") { try safeUninstall.auditDelivery() }
 if case let .success((dir, _, _)) = SafeUninstallChecks.tools { try? FileManager.default.removeItem(at: dir) }
 
 let configRoots = ConfigRootChecks()
+let codexPets = CodexPetChecks()
+run("codexPetNewestWins") { try codexPets.newestWins() }
+run("codexPetCodexHome") { try codexPets.codexHome() }
 run("configClaudeHooks") { try configRoots.hooks(.claude) }
 run("configCodexHooks") { try configRoots.hooks(.codex) }
 run("configClaudeDiscovery") { try configRoots.discovery(.claude) }
@@ -386,6 +390,8 @@ run("uncorrelatedStopUsesReceiptTime") { doneReview.uncorrelatedStopUsesReceiptT
 run("vendorIconPreferences") { try VendorIconChecks().preferences() }
 run("vendorIconResolution") { VendorIconChecks().resolution() }
 run("vendorIconThemeChoice") { try VendorIconChecks().themeChoice() }
+run("houseSnapshotRoundTrip") { try HouseSnapshotChecks().roundTrip() }
+run("houseSnapshotBadInput") { try HouseSnapshotChecks().badInput() }
 
 print(failures == 0 ? "OK \(ran) checks" : "\(failures) failure(s)")
 exit(failures == 0 ? 0 : 1)

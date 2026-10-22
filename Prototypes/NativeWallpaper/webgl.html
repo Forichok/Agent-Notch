@@ -1,0 +1,77 @@
+<!doctype html>
+<!-- Research prototype: bench.swift's synthetic scene drawn by WebGL2 inside WKWebView, one instanced draw per
+     frame. Answers "is it WebKit itself, or the 2D canvas replay?". Query: ?rects=7000&big=110&sprites=140 -->
+<meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{position:fixed;left:0;top:0;width:100vw;height:100vh;image-rendering:pixelated}</style>
+<canvas id="c"></canvas>
+<script>
+const Q = new URLSearchParams(location.search);
+const RECTS = +Q.get('rects') || 7000, BIG = +Q.get('big') || 110, SPRITES = +Q.get('sprites') || 140;
+const cv = document.getElementById('c'), W = Math.ceil(innerWidth / 3), H = Math.ceil(innerHeight / 3);
+cv.width = W; cv.height = H;
+const gl = cv.getContext('webgl2', { antialias: false, alpha: false, premultipliedAlpha: true });
+
+// the same stand-ins as bench.swift: six large "baked rooms", sixteen small sprites, a white texel for fills
+function layer(w, h, seed) {
+  const p = new Uint32Array(w * h), base = [[200, 170, 140], [150, 180, 200], [190, 150, 190]][seed % 3];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!(Math.abs(x - w / 2) * 2 + y >= w / 2 && Math.abs(x - w / 2) * 2 <= w - 2)) continue;
+    const shade = x < w / 2 ? .86 : .72, top = y < w / 2 ? 1 : shade, k = ((x >> 2) + (y >> 2) + seed) % 7 === 0 ? .8 : top;
+    p[y * w + x] = (255 << 24 | (base[2] * k) << 16 | (base[1] * k) << 8 | base[0] * k) >>> 0;
+  }
+  return { w, h, p };
+}
+function sprite(i) {
+  const w = 10, h = 14, p = new Uint32Array(w * h), body = i % 2 ? [90, 90, 220] : [222, 120, 80];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if ((y > 2 || (x > 2 && x < 7)) && !(y > 11 && (x === 4 || x === 5))) {
+    const c = x === 0 || x === w - 1 || y === h - 1 ? [42, 31, 46] : body; p[y * w + x] = (255 << 24 | c[2] << 16 | c[1] << 8 | c[0]) >>> 0; }
+  return { w, h, p };
+}
+const layers = [0, 1, 2, 3, 4, 5].map(i => layer(170 + (i % 3) * 20, 170 + (i % 2) * 40, i));
+const sprites = [...Array(16)].map((_, i) => sprite(i));
+const imgs = [...layers, ...sprites, { w: 1, h: 1, p: new Uint32Array([0xffffffff]) }];
+const AW = 1024; let ax = 0, ay = 0, rowH = 0; const places = [];
+for (const m of imgs) { if (ax + m.w > AW) { ax = 0; ay += rowH; rowH = 0; } places.push([ax, ay]); ax += m.w; rowH = Math.max(rowH, m.h); }
+const AH = ay + rowH;
+const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, AW, AH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+imgs.forEach((m, i) => gl.texSubImage2D(gl.TEXTURE_2D, 0, places[i][0], places[i][1], m.w, m.h, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(m.p.buffer)));
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+const slot = i => [places[i][0] / AW, places[i][1] / AH, imgs[i].w / AW, imgs[i].h / AH], WHITE = slot(imgs.length - 1); WHITE[2] = WHITE[3] = 0;
+
+const vs = `#version 300 es
+layout(location=0) in vec4 dst; layout(location=1) in vec4 uv; layout(location=2) in vec4 col;
+uniform vec2 size; out vec2 vuv; out vec4 vcol;
+void main() { vec2 c = vec2(gl_VertexID & 1, gl_VertexID >> 1); vec2 p = dst.xy + c * dst.zw;
+  gl_Position = vec4(p.x / size.x * 2. - 1., 1. - p.y / size.y * 2., 0, 1); vuv = uv.xy + c * uv.zw; vcol = col; }`;
+const fs = `#version 300 es
+precision mediump float; uniform sampler2D t; in vec2 vuv; in vec4 vcol; out vec4 o;
+void main() { o = texture(t, vuv) * vcol; if (o.a == 0.) discard; }`;
+const prog = gl.createProgram();
+for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); gl.attachShader(prog, s); }
+gl.linkProgram(prog); gl.useProgram(prog); gl.uniform2f(gl.getUniformLocation(prog, 'size'), W, H);
+const N = H + BIG + SPRITES + RECTS, F = 12, data = new Float32Array(N * F), buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, data.byteLength, gl.DYNAMIC_DRAW);
+for (let i = 0; i < 3; i++) { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, 4, gl.FLOAT, false, F * 4, i * 16); gl.vertexAttribDivisor(i, 1); }
+gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.viewport(0, 0, W, H);
+const pal = [...Array(32)].map((_, i) => [(60 + i * 6) / 255, (200 - i * 4) / 255, (90 + (i * 37) % 160) / 255, 1]);
+
+let n = 0;
+function put(x, y, w, h, uv, c) { const o = n++ * F; data[o] = x; data[o + 1] = y; data[o + 2] = w; data[o + 3] = h;
+  data[o + 4] = uv[0]; data[o + 5] = uv[1]; data[o + 6] = uv[2]; data[o + 7] = uv[3]; data[o + 8] = c[0]; data[o + 9] = c[1]; data[o + 10] = c[2]; data[o + 11] = c[3]; }
+const ONE = [1, 1, 1, 1];
+function frame(ms) {
+  const t = ms / 1000; n = 0;
+  for (let y = 0; y < H; y++) { const k = y / H, s = .5 + .5 * Math.sin(t * .05); put(0, y, W, 1, WHITE, [(140 + 88 * k * s) / 255, (196 + 44 * k) / 255, (244 - 4 * k) / 255, 1]); }
+  for (let i = 0; i < BIG; i++) { const l = layers[i % 6], drift = Math.trunc(Math.sin(t * .2 + i) * 3);
+    put((i * 97) % (W - (l.w >> 1)) - (l.w >> 2) + drift, (i * 53) % (H - (l.h >> 1)) - (l.h >> 2), l.w, l.h, slot(i % 6), ONE); }
+  for (let i = 0; i < SPRITES; i++) { const a = t * (.4 + (i % 5) * .1) + i;
+    put(Math.trunc(W / 2 + Math.cos(a) * W / 3), Math.trunc(H / 2 + Math.sin(a * 1.3) * H / 4), 10, 14, slot(6 + i % 16), ONE); }
+  for (let i = 0; i < RECTS; i++) { const a = t * .7 + i * .013;
+    put((i * 37 + Math.trunc(t * 20)) % W, Math.trunc(H * .15) + (i * 13 + Math.trunc(Math.sin(a) * 6)) % Math.trunc(H * .8), 1 + i % 3, i % 4 ? 1 : 2, WHITE, pal[i % 32]); }
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, data, 0, n * F);
+  gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, n);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>

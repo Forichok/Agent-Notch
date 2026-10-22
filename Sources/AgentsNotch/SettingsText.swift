@@ -145,7 +145,7 @@ enum SettingsText {
 
     static let namesRu = [
         "appearance": "Внешний вид", "list": "Список", "requests": "Запросы", "limits": "Лимиты",
-        "connection": "Подключение", "general": "Общие", "sounds": "Звуки",
+        "connection": "Подключение", "general": "Общие", "sounds": "Звуки", "house": "Дом на рабочем столе",
         "brief": "Кратко", "detailed": "Подробно", "everything": "Всё",
         "dots": "Точки", "logos": "Логотипы", "logosMono": "Логотипы цветом состояния", "letters": "Буквы",
         "small": "Мелкий", "medium": "Средний", "large": "Крупный", "always": "Всегда", "nearLimit": "Когда мало", "never": "Никогда",
@@ -163,7 +163,7 @@ enum SettingsText {
     ]
     static let namesEn = [
         "appearance": "Appearance", "list": "List", "requests": "Requests", "limits": "Limits",
-        "connection": "Connection", "general": "General", "sounds": "Sounds",
+        "connection": "Connection", "general": "General", "sounds": "Sounds", "house": "Desktop house",
         "brief": "Brief", "detailed": "Detailed", "everything": "Everything",
         "dots": "Dots", "logos": "Logos", "logosMono": "Logos in status color", "letters": "Letters",
         "small": "Small", "medium": "Medium", "large": "Large", "always": "Always", "nearLimit": "When low", "never": "Never",
@@ -184,7 +184,7 @@ enum SettingsText {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case appearance, list, requests, sounds, vault, limits, connection, general
+    case appearance, list, requests, sounds, vault, limits, house, connection, general
     var id: String { rawValue }
     var title: String { SettingsText.name(rawValue) }
     var icon: String {
@@ -195,6 +195,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .sounds: "speaker.wave.2.fill"
         case .vault: "text.quote"
         case .limits: "gauge.with.dots.needle.33percent"
+        case .house: "house.fill"
         case .connection: "powerplug.fill"
         case .general: "gearshape.fill"
         }
@@ -207,6 +208,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .sounds: Color(red: 0.84, green: 0.28, blue: 0.44)
         case .vault: Color(red: 0.62, green: 0.36, blue: 0.9)
         case .limits: Color(red: 0.19, green: 0.69, blue: 0.78)
+        case .house: Color(red: 0.93, green: 0.45, blue: 0.3)
         case .connection: Color(red: 0.2, green: 0.78, blue: 0.35)
         case .general: Color(white: 0.56)
         }
