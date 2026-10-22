@@ -59,8 +59,6 @@ def main():
     parser.add_argument('--reuse-binaries', action='store_true')
     args = parser.parse_args()
     root = args.root.resolve()
-    if '/scratchpad/research/scan-work' not in str(root):
-        parser.error('--root must be the task scratchpad scan-work directory')
     root.mkdir(parents=True, exist_ok=True)
     env = {k: v for k, v in os.environ.items() if k not in ('CLAUDE_CONFIG_DIR', 'CODEX_HOME')}
     baseline = root / 'baseline'
