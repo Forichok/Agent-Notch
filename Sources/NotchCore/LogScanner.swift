@@ -157,7 +157,7 @@ public final class LogScanner: @unchecked Sendable {
                     claudeRoot = claude
                     codexRoot = codex
                     claudeSessions = sessions
-                    files = files.filter { $0.value.isExec }
+                    for path in files.keys.filter({ files[$0]?.isExec != true }) { untrack(path) }
                     listings.removeAll()
                     metadata.removeAll()
                     liveMetadata.removeAll()
@@ -277,8 +277,10 @@ public final class LogScanner: @unchecked Sendable {
         nextRetentionExpiry = agents.filter { !$0.state.isLive }
             .map { Date(timeIntervalSince1970: $0.retainedAt + finishedRetention) }.min()
         let retained = Set(agents.map(\.id))
-        files = files.filter { _, f in retained.contains(f.log.id) || f.modified > t - window }
-        physicalFiles = physicalFiles.mapValues { $0.filter { files[$0] != nil } }.filter { !$0.value.isEmpty }
+        let expired = files.compactMap { path, f in
+            !retained.contains(f.log.id) && f.modified <= t - window ? path : nil
+        }
+        for path in expired { untrack(path) }
         return agents
     }
 
@@ -307,7 +309,7 @@ public final class LogScanner: @unchecked Sendable {
         var dirty: Set<String> = []
         var visited: Set<String> = []
         func remove(_ path: String) {
-            for key in files.keys.filter({ contains(path, $0) }) { files.removeValue(forKey: key) }
+            for key in files.keys.filter({ contains(path, $0) }) { untrack(key) }
             for key in metadata.keys.filter({ contains(path, $0) }) { metadata.removeValue(forKey: key) }
             for key in listings.keys.filter({ contains(path, $0) }) { listings.removeValue(forKey: key) }
         }
@@ -448,6 +450,12 @@ public final class LogScanner: @unchecked Sendable {
         for file in items where file.pathExtension == "json" { refreshLive(file) }
     }
 
+    private func untrack(_ path: String) {
+        guard let file = files.removeValue(forKey: path) else { return }
+        physicalFiles[file.physicalPath]?.remove(path)
+        if physicalFiles[file.physicalPath]?.isEmpty == true { physicalFiles.removeValue(forKey: file.physicalPath) }
+    }
+
     private func track(claude file: URL, parent: String?) {
         let base = file.deletingPathExtension().lastPathComponent
         var log: SessionLog
@@ -505,7 +513,7 @@ public final class LogScanner: @unchecked Sendable {
 
     private func read(_ path: String, now: Double) {
         guard var f = files[path] else { return }
-        guard let stamp = fileStamp(path) else { files.removeValue(forKey: path); metadata.removeValue(forKey: path); return }
+        guard let stamp = fileStamp(path) else { untrack(path); metadata.removeValue(forKey: path); return }
         // Avoid opening unchanged logs, including retained ancestors and exec streams.
         if f.inode == stamp.inode, f.device == stamp.device,
            f.observed == stamp { return }

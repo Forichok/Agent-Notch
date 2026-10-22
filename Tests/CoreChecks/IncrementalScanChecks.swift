@@ -108,14 +108,23 @@ extension IncrementalScanChecks {
         func row(_ text: String) -> Data { Data("{\"type\":\"user\",\"timestamp\":\"\(stamp)\",\"message\":{\"content\":\"\(text)\"}}\n{\"type\":\"last-prompt\",\"lastPrompt\":\"\(text)\"}\n".utf8) }
         try row("initial").write(to: real)
         try fm.createSymbolicLink(at: alias, withDestinationURL: real)
+        let secondAlias = dir.appendingPathComponent("second-alias.jsonl")
+        try fm.createSymbolicLink(at: secondAlias, withDestinationURL: real)
         try Data("{\"sessionId\":\"alias\",\"status\":\"waiting\",\"pid\":\(getpid())}".utf8).write(to: status)
         let scanner = LogScanner(home: home, execRuns: { [] }, rolloutParents: { [:] })
-        XCTAssertEqual(scanner.poll(now: now)!.first?.state, .waiting)
+        XCTAssertEqual(scanner.poll(now: now)!.first { $0.id == "alias" }?.state, .waiting)
         let h = try FileHandle(forWritingTo: real)
         try h.seekToEnd(); try h.write(contentsOf: row("aliased append")); try h.close()
-        XCTAssertEqual(scanner.poll(now: now.addingTimeInterval(1), changes: .paths([real.path]))!.first?.title, "aliased append")
+        XCTAssertEqual(scanner.poll(now: now.addingTimeInterval(1), changes: .paths([real.path]))!.first { $0.id == "alias" }?.title, "aliased append")
         try fm.removeItem(at: status)
-        XCTAssertEqual(scanner.poll(now: now.addingTimeInterval(2))!.first?.state, .working)
+        XCTAssertEqual(scanner.poll(now: now.addingTimeInterval(2))!.first { $0.id == "alias" }?.state, .working)
+        try fm.removeItem(at: alias)
+        _ = scanner.poll(now: now.addingTimeInterval(3), changes: .paths([alias.path]))
+        let more = try FileHandle(forWritingTo: real)
+        try more.seekToEnd(); try more.write(contentsOf: row("remaining alias")); try more.close()
+        let remaining = scanner.poll(now: now.addingTimeInterval(4), changes: .paths([real.path]))!
+        XCTAssertEqual(remaining.map(\.id), ["second-alias"])
+        XCTAssertEqual(remaining.first?.title, "remaining alias")
     }
 }
 
