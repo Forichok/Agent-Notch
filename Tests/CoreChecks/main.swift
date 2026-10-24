@@ -84,6 +84,10 @@ run("watcherRetentionExpiry") { try FileWatcherChecks().nextFinishedExpiry() }
 run("watcherDrops") { FileWatcherChecks().droppedEventsRequestFullScan() }
 run("processRefreshRateLimit") { ProcessEventChecks().coalescesChurnWithTrailingRefresh() }
 run("processArgumentsCache") { ProcessEventChecks().cachesArgumentsUntilExitReuseOrExec() }
+run("incrementalEventsAndReconciliation") { try IncrementalScanChecks().eventsAndReconciliation() }
+run("incrementalReconcileRootsAndExec") { try IncrementalScanChecks().reconciliationRemapsRootsAndDrainsExec() }
+run("incrementalAliasesAndLegacyStatus") { try IncrementalScanChecks().aliasesAndLegacyStatus() }
+run("incrementalSessionLayout") { try IncrementalScanChecks().discoveryStaysWithinSessionLayout() }
 let discovery = CodexDiscoveryChecks()
 run("codexResumedOldFolder") { try discovery.resumedOldFolderAndAppendedTail() }
 run("codexTruncatedBoundedRead") { try discovery.resetReadsBoundedTail(replaced: false) }

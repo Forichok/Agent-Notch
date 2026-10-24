@@ -109,7 +109,7 @@ final class Store: ObservableObject {
             MainActor.assumeIsolated {
                 if self?.watcher?.isWatching == false { self?.watchedPaths = [] }
                 self?.processWatcher?.repair()
-                self?.poll()
+                self?.poll(changes: .processes)
             }
         }
         startHooks()
