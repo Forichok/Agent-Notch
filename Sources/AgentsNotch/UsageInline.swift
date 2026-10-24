@@ -13,7 +13,7 @@ private enum UsageInlineText {
 
 struct UsageInline: View {
     @ObservedObject var usage: UsageModel
-    @ObservedObject var settings: AppSettings = .shared
+    @EnvironmentObject private var settings: AppSettings
     var body: some View {
         if let vendor = usage.selectedVendor, let raw = usage.limits.first(where: { $0.vendor == vendor }),
            let limits = settings.displayedLimits(raw) {
